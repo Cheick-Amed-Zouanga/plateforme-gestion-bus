@@ -2,4 +2,4 @@ from django.apps import AppConfig
 
 
 class SavAavisConfig(AppConfig):
-    name = 'sav_aavis'
+    name = 'apps.sav_aavis'
