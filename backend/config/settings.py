@@ -25,7 +25,10 @@ SECRET_KEY = 'django-insecure-e-a^x!&pgqqa44rsbj5-pvf_k29r6c0!j9ov-m@!&3z2&o5uqn
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+]
 
 
 # Application definition
@@ -33,12 +36,14 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'apps.accounts',
     'apps.transport',
     'apps.reservation_billets',
@@ -50,6 +55,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -113,11 +119,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
 LANGUAGE_CODE = 'fr-fr'
-
-TIME_ZONE = 'America/Quebec'
+TIME_ZONE = 'America/Montreal'
 
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -126,9 +130,34 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# CORS / CSRF pour le frontend React en développement
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "noreply@terrasso.local"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "terrasso-reinitialisation-compte",
+    }
+}
+
+SESSION_COOKIE_AGE = 1800
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
