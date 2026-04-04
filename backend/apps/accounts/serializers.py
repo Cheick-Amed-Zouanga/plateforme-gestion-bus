@@ -394,10 +394,10 @@ class ProfilConnecteSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         if hasattr(obj, "profil_employe") and obj.profil_employe:
-          return obj.profil_employe.role
+            return obj.profil_employe.role
         if hasattr(obj, "profil_client"):
-          return "client"
-          return None
+            return "client"
+        return None
 
     def get_compagnie(self, obj):
         if hasattr(obj, "profil_employe") and obj.profil_employe.compagnie:

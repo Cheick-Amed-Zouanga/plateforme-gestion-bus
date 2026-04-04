@@ -1,13 +1,23 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../features/accounts/services/authservice";
 
 const DUREE_INACTIVITE = 30 * 60 * 1000;
 
+const PAGES_PUBLIQUES = [
+  "/login",
+  "/recuperationCompte",
+  "/verificationCode",
+  "/reinitialisationCompte",
+];
+
 function SessionTimeout() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    if (PAGES_PUBLIQUES.includes(location.pathname)) return;
+
     let timeoutId;
 
     async function deconnecterPourInactivite() {
@@ -27,19 +37,14 @@ function SessionTimeout() {
 
     const evenements = ["mousemove", "keydown", "click", "scroll"];
 
-    evenements.forEach((eventName) => {
-      window.addEventListener(eventName, reinitialiserTimer);
-    });
-
+    evenements.forEach((ev) => window.addEventListener(ev, reinitialiserTimer));
     reinitialiserTimer();
 
     return () => {
       clearTimeout(timeoutId);
-      evenements.forEach((eventName) => {
-        window.removeEventListener(eventName, reinitialiserTimer);
-      });
+      evenements.forEach((ev) => window.removeEventListener(ev, reinitialiserTimer));
     };
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   return null;
 }

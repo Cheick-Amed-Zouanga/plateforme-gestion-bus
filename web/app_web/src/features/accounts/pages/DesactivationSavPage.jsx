@@ -6,10 +6,10 @@ function DesactivationSavPage() {
   return (
     <div>
       <Header />
-      <SubHeader title="Désactivation Chef d'un employe service a la clientele" />
+      <SubHeader title="Désactivation Agent SAV" />
       <DesactivationEmploye
-        role="Sav"
-        titre="Désactiver sav"
+        role="SAV"
+        titre="Désactiver un agent SAV"
       />
     </div>
   );

@@ -17,10 +17,29 @@ function ReinitialisationComptePage() {
   const [erreur, setErreur] = useState("");
   const [message, setMessage] = useState("");
 
+  function validerMotDePasse(mdp) {
+    if (mdp.length < 7 || mdp.length > 20) {
+      return "Le mot de passe doit contenir entre 7 et 20 caractères.";
+    }
+    if (!/[A-Z]/.test(mdp)) {
+      return "Le mot de passe doit contenir au moins une majuscule.";
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(mdp)) {
+      return "Le mot de passe doit contenir au moins un caractère spécial.";
+    }
+    return null;
+  }
+
   async function gererSoumission(e) {
     e.preventDefault();
     setErreur("");
     setMessage("");
+
+    const erreurMdp = validerMotDePasse(nouveauPassword);
+    if (erreurMdp) {
+      setErreur(erreurMdp);
+      return;
+    }
 
     if (nouveauPassword !== confirmationPassword) {
       setErreur("Les mots de passe ne correspondent pas.");

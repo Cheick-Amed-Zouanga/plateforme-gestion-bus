@@ -68,6 +68,7 @@ class ProfilEmploye(models.Model):
         help_text="Optionnel pour l'admin plateforme.",
     )
     role = models.CharField(max_length=20, choices=Role.choices)
+    telephone = models.CharField(max_length=30, blank=True)
     actif = models.BooleanField(default=True)
 
     class Meta:

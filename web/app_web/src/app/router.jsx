@@ -27,6 +27,13 @@ import DesactivationChefPage from "../features/accounts/pages/DesactivationChefP
 import DesactivationComptablePage from "../features/accounts/pages/DesactivationComptablePage";
 import DesactivationSavPage from "../features/accounts/pages/DesactivationSavPage";
 
+const ADMIN = ["ADMIN_PLATEFORME"];
+const CHEF = ["CHEF_COMPAGNIE"];
+const SAV = ["SAV"];
+const CONTROLEUR = ["CONTROLEUR"];
+const COMPTABLE = ["COMPTABLE"];
+const RECEPTIONNISTE = ["RECEPTIONNISTE"];
+
 function Router() {
   return (
     <BrowserRouter>
@@ -39,7 +46,7 @@ function Router() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN}>
               <AdminHomePage />
             </ProtectedRoute>
           }
@@ -48,7 +55,7 @@ function Router() {
         <Route
           path="/chef"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={CHEF}>
               <ChefHomePage />
             </ProtectedRoute>
           }
@@ -57,7 +64,7 @@ function Router() {
         <Route
           path="/sav"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={SAV}>
               <SavHomePage />
             </ProtectedRoute>
           }
@@ -66,7 +73,7 @@ function Router() {
         <Route
           path="/controleur"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={CONTROLEUR}>
               <ControleurHomePage />
             </ProtectedRoute>
           }
@@ -75,7 +82,7 @@ function Router() {
         <Route
           path="/comptable"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={COMPTABLE}>
               <ComptableHomePage />
             </ProtectedRoute>
           }
@@ -84,7 +91,7 @@ function Router() {
         <Route
           path="/receptionniste"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={RECEPTIONNISTE}>
               <ReceptionnisteHomePage />
             </ProtectedRoute>
           }
@@ -93,7 +100,7 @@ function Router() {
         <Route
           path="/admin/inscriptionChef"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN}>
               <InscriptionChef />
             </ProtectedRoute>
           }
@@ -102,7 +109,7 @@ function Router() {
         <Route
           path="/admin/inscriptionSav"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN}>
               <InscriptionSav />
             </ProtectedRoute>
           }
@@ -111,7 +118,7 @@ function Router() {
         <Route
           path="/admin/inscriptionComptable"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN}>
               <InscriptionComptable />
             </ProtectedRoute>
           }
@@ -124,7 +131,7 @@ function Router() {
         <Route
           path="/admin/modificationChefCompagnie"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN}>
               <ModificationChefPage />
             </ProtectedRoute>
           }
@@ -133,7 +140,7 @@ function Router() {
         <Route
           path="/admin/modificationSav"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN}>
               <ModificationSavPage />
             </ProtectedRoute>
           }
@@ -142,7 +149,7 @@ function Router() {
         <Route
           path="/admin/modificationComptable"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN}>
               <ModificationComptablePage />
             </ProtectedRoute>
           }
@@ -151,7 +158,7 @@ function Router() {
         <Route
           path="/admin/desactivationChefCompagnie"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN}>
               <DesactivationChefPage />
             </ProtectedRoute>
           }
@@ -160,7 +167,7 @@ function Router() {
         <Route
           path="/admin/desactivationSav"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN}>
               <DesactivationSavPage />
             </ProtectedRoute>
           }
@@ -169,7 +176,7 @@ function Router() {
         <Route
           path="/admin/desactivationComptable"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN}>
               <DesactivationComptablePage />
             </ProtectedRoute>
           }

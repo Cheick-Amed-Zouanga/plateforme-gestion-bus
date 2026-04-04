@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    CsrfTokenView,
     InscriptionClientView,
     ConnexionView,
     CreationChefCompagnieView,
@@ -23,6 +24,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path("csrf/", CsrfTokenView.as_view(), name="csrf-token"),
     path("inscription/client/", InscriptionClientView.as_view(), name="inscription-client"),
     path("connexion/", ConnexionView.as_view(), name="connexion"),
     path("me/", ProfilConnecteView.as_view(), name="profil-connecte"),

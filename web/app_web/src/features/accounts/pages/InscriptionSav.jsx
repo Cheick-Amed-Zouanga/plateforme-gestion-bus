@@ -112,12 +112,24 @@ function InscriptionSav() {
             />
           </div>
 
-          <div style={{ marginBottom: "20px" }}>
+          <div style={{ marginBottom: "15px" }}>
             <label>Mot de passe</label>
             <input
               type="password"
               name="password"
               value={formulaire.password}
+              onChange={gererChangement}
+              style={{ width: "100%", padding: "10px", marginTop: "5px" }}
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom: "20px" }}>
+            <label>Confirmation du mot de passe</label>
+            <input
+              type="password"
+              name="confirmationPassword"
+              value={formulaire.confirmationPassword}
               onChange={gererChangement}
               style={{ width: "100%", padding: "10px", marginTop: "5px" }}
               required

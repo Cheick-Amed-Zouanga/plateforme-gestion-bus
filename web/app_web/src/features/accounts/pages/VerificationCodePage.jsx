@@ -60,7 +60,7 @@ function VerificationCodePage() {
 
           <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
             <button type="submit">Vérifier le code</button>
-            <button type="button" onClick={() => navigate("/recuperation-compte")}>
+            <button type="button" onClick={() => navigate("/recuperationCompte")}>
               Retour
             </button>
           </div>

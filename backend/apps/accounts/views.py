@@ -4,6 +4,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.mail import send_mail
+from django.middleware.csrf import get_token
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -29,13 +30,17 @@ from .serializers import (
 )
 
 
-class CsrfExemptSessionAuthentication(SessionAuthentication):
-    def enforce_csrf(self, request):
-        return
-
-
 class BaseAPIView(APIView):
-    authentication_classes = [CsrfExemptSessionAuthentication]
+    authentication_classes = [SessionAuthentication]
+
+
+class CsrfTokenView(APIView):
+    """Endpoint GET appelé au démarrage du frontend pour initialiser le cookie CSRF."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({'csrfToken': get_token(request)})
 
 
 class InscriptionClientView(BaseAPIView):

@@ -122,11 +122,13 @@ function redirigerSelonRole(profil, navigate) {
     return;
   }
 
-  setTimeout(() => {
-    navigate("/login");
-  }, 0);
+  if (role === "client") {
+    alert("Cette interface est réservée aux employés. Veuillez utiliser l'application mobile.");
+  } else {
+    alert("Rôle non reconnu. Contactez l'administrateur.");
+  }
 
-  alert("Rôle non reconnu.");
+  navigate("/login");
 }
 
 const styles = {
