@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { desactiverEmployePlateforme } from "../features/accounts/services/authservice";
+import { darkFormStyles } from "../shared/styles/darkTheme";
+
+const s = darkFormStyles();
 
 function DesactivationEmploye({ titre }) {
   const navigate = useNavigate();
@@ -8,7 +11,6 @@ function DesactivationEmploye({ titre }) {
 
   async function gererSoumission(e) {
     e.preventDefault();
-
     try {
       const data = await desactiverEmployePlateforme({ usernameRecherche });
       alert(data.message);
@@ -19,29 +21,31 @@ function DesactivationEmploye({ titre }) {
   }
 
   return (
-    <div style={{ padding: "20px", maxWidth: "500px", margin: "0 auto" }}>
-      <h3>{titre}</h3>
-
-      <form onSubmit={gererSoumission}>
-        <div style={{ marginBottom: "15px" }}>
-          <label>Nom d'utilisateur de l'employé à désactiver</label>
-          <input
-            type="text"
-            value={usernameRecherche}
-            onChange={(e) => setUsernameRecherche(e.target.value)}
-            style={{ width: "100%", padding: "10px", marginTop: "5px" }}
-            required
-          />
-        </div>
-
-        <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-          <button type="submit">Désactiver le compte</button>
-          <button type="button" onClick={() => navigate("/admin")}>
-            Retour
-          </button>
-        </div>
-      </form>
-    </div>
+    <main style={s.main}>
+      <div style={s.card}>
+        <form onSubmit={gererSoumission}>
+          <div style={s.group}>
+            <label style={s.label}>Nom d'utilisateur de l'employé à désactiver</label>
+            <input
+              type="text"
+              value={usernameRecherche}
+              onChange={(e) => setUsernameRecherche(e.target.value)}
+              style={s.input}
+              placeholder="username"
+              required
+            />
+          </div>
+          <div style={s.btnRow}>
+            <button type="submit" style={{ ...s.btnSubmit, backgroundColor: "#C41E3A" }}>
+              Désactiver le compte
+            </button>
+            <button type="button" style={s.btnBack} onClick={() => navigate("/admin")}>
+              Retour
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
   );
 }
 

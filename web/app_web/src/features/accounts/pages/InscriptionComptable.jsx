@@ -3,169 +3,77 @@ import { useNavigate } from "react-router-dom";
 import Header from "../../../components/Header";
 import SubHeader from "../../../components/SubHeader";
 import { creerComptable } from "../services/authservice";
+import { darkFormStyles } from "../../../shared/styles/darkTheme";
+
+const s = darkFormStyles();
 
 function InscriptionComptable() {
   const navigate = useNavigate();
 
   const [formulaire, setFormulaire] = useState({
-    nom: "",
-    prenom: "",
-    email: "",
-    tel:"",
-    nomCompagnie:"",
-    username: "",
-    password: "",
-    confirmationPassword: "",
+    nom: "", prenom: "", nomCompagnie: "", email: "", tel: "",
+    username: "", password: "", confirmationPassword: "",
     role: "comptable",
   });
 
   function gererChangement(e) {
     const { name, value } = e.target;
-
-    setFormulaire((ancien) => ({
-      ...ancien,
-      [name]: value,
-    }));
+    setFormulaire((ancien) => ({ ...ancien, [name]: value }));
   }
 
   async function gererSoumission(e) {
-  e.preventDefault();
-
-  if (formulaire.password !== formulaire.confirmationPassword) {
-    alert("Les mots de passe ne correspondent pas.");
-    return;
+    e.preventDefault();
+    if (formulaire.password !== formulaire.confirmationPassword) {
+      alert("Les mots de passe ne correspondent pas.");
+      return;
+    }
+    try {
+      const data = await creerComptable(formulaire);
+      alert(data.message);
+      navigate("/admin");
+    } catch (error) {
+      alert(error.message);
+    }
   }
 
-  const payload = {
-    nom: formulaire.nom,
-    prenom: formulaire.prenom,
-    email: formulaire.email,
-    tel: formulaire.tel,
-    username: formulaire.username,
-    password: formulaire.password,
-    confirmationPassword: formulaire.confirmationPassword,
-  };
-
-  try {
-    const data = await creerComptable(payload);
-    alert(data.message);
-    navigate("/admin");
-  } catch (error) {
-    alert(error.message);
-  }
-}
+  const champs = [
+    { label: "Nom",                          name: "nom",                  type: "text"     },
+    { label: "Prénom",                       name: "prenom",               type: "text"     },
+    { label: "Nom de la compagnie",          name: "nomCompagnie",         type: "text"     },
+    { label: "Email",                        name: "email",                type: "email"    },
+    { label: "Téléphone",                    name: "tel",                  type: "tel"      },
+    { label: "Nom d'utilisateur",            name: "username",             type: "text"     },
+    { label: "Mot de passe",                 name: "password",             type: "password" },
+    { label: "Confirmation du mot de passe", name: "confirmationPassword", type: "password" },
+  ];
 
   return (
-    <div>
+    <div style={s.page}>
       <Header />
       <SubHeader title="Inscription Comptable" />
-
-      <div style={{ padding: "20px", maxWidth: "500px", margin: "0 auto" }}>
-        <form onSubmit={gererSoumission}>
-          <div style={{ marginBottom: "15px" }}>
-            <label>Nom</label>
-            <input
-              type="text"
-              name="nom"
-              value={formulaire.nom}
-              onChange={gererChangement}
-              style={{ width: "100%", padding: "10px", marginTop: "5px" }}
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label>Prénom</label>
-            <input
-              type="text"
-              name="prenom"
-              value={formulaire.prenom}
-              onChange={gererChangement}
-              style={{ width: "100%", padding: "10px", marginTop: "5px" }}
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label>Nom de la compagnie</label>
-            <input
-              type="text"
-              name="nomCompagnie"
-              value={formulaire.nomCompagnie}
-              onChange={gererChangement}
-              style={{ width: "100%", padding: "10px", marginTop: "5px" }}
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label>Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formulaire.email}
-              onChange={gererChangement}
-              style={{ width: "100%", padding: "10px", marginTop: "5px" }}
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label>Téléphone</label>
-            <input
-              type="tel"
-              name="tel"
-              value={formulaire.tel}
-              onChange={gererChangement}
-              style={{ width: "100%", padding: "10px", marginTop: "5px" }}
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label>Nom d'utilisateur</label>
-            <input
-              type="text"
-              name="username"
-              value={formulaire.username}
-              onChange={gererChangement}
-              style={{ width: "100%", padding: "10px", marginTop: "5px" }}
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label>Mot de passe</label>
-            <input
-              type="password"
-              name="password"
-              value={formulaire.password}
-              onChange={gererChangement}
-              style={{ width: "100%", padding: "10px", marginTop: "5px" }}
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: "20px" }}>
-            <label>Confirmation du mot de passe</label>
-            <input
-              type="password"
-              name="confirmationPassword"
-              value={formulaire.confirmationPassword}
-              onChange={gererChangement}
-              style={{ width: "100%", padding: "10px", marginTop: "5px" }}
-              required
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-            <button type="submit">Créer le compte</button>
-            <button type="button" onClick={() => navigate("/admin")}>
-              Retour
-            </button>
-          </div>
-        </form>
-      </div>
+      <main style={s.main}>
+        <div style={s.card}>
+          <form onSubmit={gererSoumission}>
+            {champs.map(({ label, name, type }) => (
+              <div key={name} style={s.group}>
+                <label style={s.label}>{label}</label>
+                <input
+                  type={type}
+                  name={name}
+                  value={formulaire[name]}
+                  onChange={gererChangement}
+                  style={s.input}
+                  required
+                />
+              </div>
+            ))}
+            <div style={s.btnRow}>
+              <button type="submit" style={s.btnSubmit}>Créer le compte</button>
+              <button type="button" style={s.btnBack} onClick={() => navigate("/admin")}>Retour</button>
+            </div>
+          </form>
+        </div>
+      </main>
     </div>
   );
 }

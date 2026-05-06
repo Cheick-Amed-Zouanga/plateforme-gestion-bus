@@ -1,28 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import Header from "../../../components/Header";
-import SubHeader from "../../../components/SubHeader";
 import { loginUser, getConnectedProfile } from "../services/authservice";
+import { darkFormStyles } from "../../../shared/styles/darkTheme";
+
+const s = darkFormStyles();
 
 function LoginPage() {
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername]           = useState("");
+  const [password, setPassword]           = useState("");
   const [messageErreur, setMessageErreur] = useState("");
-  const [chargement, setChargement] = useState(false);
+  const [chargement, setChargement]       = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
     setMessageErreur("");
     setChargement(true);
-
     try {
       await loginUser({ username, password });
-      console.log("Données envoyées :",{ username, password});
       const profil = await getConnectedProfile();
-
       redirigerSelonRole(profil, navigate);
     } catch (error) {
       setMessageErreur(error.message);
@@ -32,58 +29,61 @@ function LoginPage() {
   }
 
   return (
-    <div>
-      <Header />
-      <SubHeader title="Connexion" />
+    <div style={styles.page}>
+      <div style={styles.main}>
+        <div style={s.card}>
 
-      <div style={styles.page}>
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.group}>
-            <label htmlFor="username">Nom d’utilisateur</label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              style={styles.input}
-              required
-            />
-          </div>
+          <h1 style={styles.title}>Terrasso</h1>
+          <p style={styles.subtitle}>Plateforme de gestion des bus</p>
 
-          <div style={styles.group}>
-            <label htmlFor="password">Mot de passe</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              style={styles.input}
-              required
-            />
-          </div>
+          <form onSubmit={handleSubmit}>
+            <div style={s.group}>
+              <label style={s.label} htmlFor="username">Nom d'utilisateur</label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                style={s.input}
+                placeholder="Entrez votre nom d'utilisateur"
+                autoComplete="username"
+                required
+              />
+            </div>
 
-          {messageErreur && <p style={styles.error}>{messageErreur}</p>}
+            <div style={s.group}>
+              <label style={s.label} htmlFor="password">Mot de passe</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={s.input}
+                placeholder="Entrez votre mot de passe"
+                autoComplete="current-password"
+                required
+              />
+            </div>
 
-          <button type="submit" style={styles.button} disabled={chargement}>
-            {chargement ? "Connexion..." : "Connexion"}
-          </button>
-          <div style={{ marginTop: "15px", textAlign: "center" }}>
-         <button
-          type="button"
+            {messageErreur && <div style={s.error}>{messageErreur}</div>}
+
+            <button
+              type="submit"
+              style={chargement ? { ...s.btnSubmit, ...styles.btnDisabled } : s.btnSubmit}
+              disabled={chargement}
+            >
+              {chargement ? "Connexion en cours…" : "Se connecter"}
+            </button>
+
+            <button
+              type="button"
               onClick={() => navigate("/recuperationCompte")}
-              style={{
-                background: "none",
-                border: "none",
-                color: "blue",
-                textDecoration: "underline",
-                cursor: "pointer",
-              }
-          }
-  >
-    Nom d'utilisateur ou mot de passe oublié ?
-  </button>
-</div>
-        </form>
+              style={styles.forgotLink}
+            >
+              Nom d'utilisateur ou mot de passe oublié ?
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -92,81 +92,65 @@ function LoginPage() {
 function redirigerSelonRole(profil, navigate) {
   const role = profil.role;
 
-  if (role === "ADMIN_PLATEFORME") {
-    navigate("/admin");
-    return;
-  }
-
-  if (role === "CHEF_COMPAGNIE") {
-    navigate("/chef");
-    return;
-  }
-
-  if (role === "SAV") {
-    navigate("/sav");
-    return;
-  }
-
-  if (role === "CONTROLEUR") {
-    navigate("/controleur");
-    return;
-  }
-
-  if (role === "COMPTABLE") {
-    navigate("/comptable");
-    return;
-  }
-
-  if (role === "RECEPTIONNISTE") {
-    navigate("/receptionniste");
-    return;
-  }
+  if (role === "ADMIN_PLATEFORME")  { navigate("/admin");          return; }
+  if (role === "CHEF_COMPAGNIE")    { navigate("/chef");           return; }
+  if (role === "SAV")               { navigate("/sav");            return; }
+  if (role === "CONTROLEUR")        { navigate("/controleur");     return; }
+  if (role === "COMPTABLE")         { navigate("/comptable");      return; }
+  if (role === "RECEPTIONNISTE")    { navigate("/receptionniste"); return; }
 
   if (role === "client") {
     alert("Cette interface est réservée aux employés. Veuillez utiliser l'application mobile.");
   } else {
     alert("Rôle non reconnu. Contactez l'administrateur.");
   }
-
   navigate("/login");
 }
 
 const styles = {
   page: {
+    minHeight: "100vh",
+    backgroundColor: "#0D1117",
     display: "flex",
-    justifyContent: "center",
     alignItems: "center",
-    padding: "40px 20px",
+    justifyContent: "center",
+    fontFamily: "'Segoe UI', Arial, sans-serif",
+    padding: "20px",
   },
-  form: {
+  main: {
     width: "100%",
-    maxWidth: "420px",
-    border: "1px solid #ddd",
-    borderRadius: "10px",
-    padding: "24px",
-    backgroundColor: "#fff",
+    maxWidth: "480px",
   },
-  group: {
-    display: "flex",
-    flexDirection: "column",
-    marginBottom: "16px",
+  title: {
+    fontSize: "22px",
+    fontWeight: "800",
+    color: "#E6EDF3",
+    margin: "0 0 4px 0",
   },
-  input: {
-    marginTop: "8px",
-    padding: "10px",
-    borderRadius: "6px",
-    border: "1px solid #ccc",
+  subtitle: {
+    fontSize: "12px",
+    color: "#6E7681",
+    textTransform: "uppercase",
+    letterSpacing: "1px",
+    margin: "0 0 24px 0",
   },
-  button: {
+  btnDisabled: {
+    backgroundColor: "#1E5C35",
+    cursor: "not-allowed",
+  },
+  forgotLink: {
+    display: "block",
     width: "100%",
-    padding: "12px",
+    textAlign: "center",
+    background: "none",
     border: "none",
-    borderRadius: "6px",
+    color: "#6E7681",
+    fontSize: "13px",
     cursor: "pointer",
-  },
-  error: {
-    color: "red",
-    marginBottom: "12px",
+    textDecoration: "underline",
+    padding: "14px 0 0",
+    fontFamily: "inherit",
+    marginTop: "12px",
   },
 };
 

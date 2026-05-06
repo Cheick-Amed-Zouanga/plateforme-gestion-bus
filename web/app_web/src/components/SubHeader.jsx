@@ -8,13 +8,16 @@ function SubHeader({ title }) {
 
 const styles = {
   container: {
-    padding: "16px",
-    textAlign: "left",
-    
+    backgroundColor: "#0D1117",
+    padding: "18px 28px",
+    borderBottom: "1px solid #21262D",
+    fontFamily: "'Segoe UI', Arial, sans-serif",
   },
   title: {
     margin: 0,
-    color: "#1f3c88",
+    fontSize: "20px",
+    fontWeight: "700",
+    color: "#E6EDF3",
   },
 };
 

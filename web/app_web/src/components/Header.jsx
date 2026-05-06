@@ -14,7 +14,7 @@ function Header() {
   return (
     <header style={styles.header}>
       <div style={styles.container}>
-        <h1 style={styles.title}>TERRASO</h1>
+        <span style={styles.title}>TERRASSO</span>
         <button onClick={gererDeconnexion} style={styles.logoutButton}>
           Déconnexion
         </button>
@@ -25,21 +25,35 @@ function Header() {
 
 const styles = {
   header: {
-    backgroundColor: "#1f0101",
-    color: "white",
-    padding: "20px",
+    backgroundColor: "#161B22",
+    borderBottom: "1px solid #30363D",
+    padding: "0 24px",
   },
   container: {
+    maxWidth: "960px",
+    margin: "0 auto",
+    height: "60px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
   },
   title: {
-    margin: 0,
+    fontSize: "18px",
+    fontWeight: "800",
+    color: "#E6EDF3",
+    letterSpacing: "2px",
+    fontFamily: "'Segoe UI', Arial, sans-serif",
   },
   logoutButton: {
-    padding: "10px 14px",
+    padding: "8px 16px",
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#FF7B72",
+    backgroundColor: "transparent",
+    border: "1.5px solid #C41E3A",
+    borderRadius: "8px",
     cursor: "pointer",
+    fontFamily: "inherit",
   },
 };
 

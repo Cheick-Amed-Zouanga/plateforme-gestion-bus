@@ -4,13 +4,10 @@ import ModificationEmploye from "../../../components/modificationEmploye";
 
 function ModificationChefPage() {
   return (
-    <div>
+    <div style={{ minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" }}>
       <Header />
       <SubHeader title="Modification Chef de compagnie" />
-      <ModificationEmploye
-        role="chef_compagnie"
-        titre="Modifier un chef de compagnie"
-      />
+      <ModificationEmploye role="chef_compagnie" titre="Modifier un chef de compagnie" />
     </div>
   );
 }

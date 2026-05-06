@@ -1,6 +1,7 @@
 import random
 
-from django.contrib.auth import login, logout
+from django.conf import settings
+from django.contrib.auth import logout
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.mail import send_mail
@@ -10,6 +11,8 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import ProfilEmploye
 from .serializers import (
@@ -30,12 +33,46 @@ from .serializers import (
 )
 
 
+# ---------------------------------------------------------------------------
+# Base & utilitaires
+# ---------------------------------------------------------------------------
+
 class BaseAPIView(APIView):
+    # Toutes les vues héritant de cette classe utilisent la session Django
     authentication_classes = [SessionAuthentication]
 
 
+def _set_jwt_cookies(response, refresh):
+    """Pose les cookies access et refresh JWT sur la réponse HTTP."""
+    access = refresh.access_token
+    secure = getattr(settings, 'JWT_AUTH_COOKIE_SECURE', False)
+    samesite = getattr(settings, 'JWT_AUTH_COOKIE_SAMESITE', 'Lax')
+
+    response.set_cookie(
+        key=settings.JWT_AUTH_COOKIE,
+        value=str(access),
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        max_age=int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
+    )
+    response.set_cookie(
+        key=settings.JWT_AUTH_REFRESH_COOKIE,
+        value=str(refresh),
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        max_age=int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds()),
+    )
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Authentification (CSRF, connexion, déconnexion, refresh)
+# ---------------------------------------------------------------------------
+
 class CsrfTokenView(APIView):
-    """Endpoint GET appelé au démarrage du frontend pour initialiser le cookie CSRF."""
+    """Fournit le token CSRF au frontend au démarrage de l'application."""
     authentication_classes = []
     permission_classes = [AllowAny]
 
@@ -43,7 +80,77 @@ class CsrfTokenView(APIView):
         return Response({'csrfToken': get_token(request)})
 
 
+class ConnexionView(APIView):
+    """Authentifie l'utilisateur et pose les cookies JWT."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = ConnexionSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        utilisateur = serializer.validated_data['utilisateur']
+        refresh = RefreshToken.for_user(utilisateur)
+
+        # Récupère le rôle si c'est un employé
+        role = None
+        if hasattr(utilisateur, 'profil_employe'):
+            role = utilisateur.profil_employe.role
+
+        response = Response(
+            {'message': 'Connexion réussie.', 'username': utilisateur.username, 'role': role},
+            status=status.HTTP_200_OK,
+        )
+        return _set_jwt_cookies(response, refresh)
+
+
+class DeconnexionView(APIView):
+    """Invalide le refresh token et supprime les cookies JWT."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        refresh_token = request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE)
+
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except TokenError:
+                pass  # token déjà invalide, on continue quand même
+
+        response = Response({'message': 'Déconnexion réussie.'})
+        response.delete_cookie(settings.JWT_AUTH_COOKIE)
+        response.delete_cookie(settings.JWT_AUTH_REFRESH_COOKIE)
+        return response
+
+
+class TokenRefreshCookieView(APIView):
+    """Renouvelle l'access token à partir du refresh token stocké en cookie."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        refresh_token = request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE)
+        if not refresh_token:
+            return Response(
+                {'detail': 'Refresh token manquant.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        try:
+            refresh = RefreshToken(refresh_token)
+            response = Response({'message': 'Token renouvelé.'})
+            return _set_jwt_cookies(response, refresh)
+        except TokenError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+# ---------------------------------------------------------------------------
+# Inscription & profil
+# ---------------------------------------------------------------------------
+
 class InscriptionClientView(BaseAPIView):
+    """Crée un nouveau compte client."""
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -51,36 +158,27 @@ class InscriptionClientView(BaseAPIView):
         if serializer.is_valid():
             utilisateur = serializer.save()
             return Response(
-                {
-                    "message": "Inscription réussie.",
-                    "username": utilisateur.username,
-                },
+                {'message': 'Inscription réussie.', 'username': utilisateur.username},
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ConnexionView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
+class ProfilConnecteView(BaseAPIView):
+    """Retourne les informations du compte actuellement connecté."""
+    permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        serializer = ConnexionSerializer(data=request.data)
-        if serializer.is_valid():
-            utilisateur = serializer.validated_data["utilisateur"]
-            login(request, utilisateur)
-            return Response(
-                {
-                    "message": "Connexion réussie.",
-                    "username": utilisateur.username,
-                    "role": ProfilConnecteSerializer(utilisateur).data.get("role"),
-                },
-                status=status.HTTP_200_OK,
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request):
+        serializer = ProfilConnecteSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+# ---------------------------------------------------------------------------
+# Création de comptes employés (réservé aux utilisateurs authentifiés)
+# ---------------------------------------------------------------------------
 
 class CreationSAVView(BaseAPIView):
+    """Crée un agent SAV."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -88,16 +186,14 @@ class CreationSAVView(BaseAPIView):
         if serializer.is_valid():
             utilisateur = serializer.save()
             return Response(
-                {
-                    "message": "Agent SAV créé avec succès.",
-                    "username": utilisateur.username,
-                },
+                {'message': 'Agent SAV créé avec succès.', 'username': utilisateur.username},
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CreationComptablePlateformeView(BaseAPIView):
+    """Crée un comptable plateforme."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -107,16 +203,14 @@ class CreationComptablePlateformeView(BaseAPIView):
         if serializer.is_valid():
             utilisateur = serializer.save()
             return Response(
-                {
-                    "message": "Comptable plateforme créé avec succès.",
-                    "username": utilisateur.username,
-                },
+                {'message': 'Comptable plateforme créé avec succès.', 'username': utilisateur.username},
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CreationChefCompagnieView(BaseAPIView):
+    """Crée un chef de compagnie."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -126,16 +220,14 @@ class CreationChefCompagnieView(BaseAPIView):
         if serializer.is_valid():
             utilisateur = serializer.save()
             return Response(
-                {
-                    "message": "Chef de compagnie créé avec succès.",
-                    "username": utilisateur.username,
-                },
+                {'message': 'Chef de compagnie créé avec succès.', 'username': utilisateur.username},
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CreationEmployeCompagnieView(BaseAPIView):
+    """Crée un employé (réceptionniste ou contrôleur) au sein d'une compagnie."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -145,32 +237,18 @@ class CreationEmployeCompagnieView(BaseAPIView):
         if serializer.is_valid():
             utilisateur = serializer.save()
             return Response(
-                {
-                    "message": "Employé de compagnie créé avec succès.",
-                    "username": utilisateur.username,
-                },
+                {'message': 'Employé de compagnie créé avec succès.', 'username': utilisateur.username},
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ProfilConnecteView(BaseAPIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        serializer = ProfilConnecteSerializer(request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class DeconnexionView(BaseAPIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        logout(request)
-        return Response({"message": "Déconnexion réussie."}, status=status.HTTP_200_OK)
-
+# ---------------------------------------------------------------------------
+# Modification de profils
+# ---------------------------------------------------------------------------
 
 class ModifierClientView(BaseAPIView):
+    """Permet à un client de modifier son propre profil."""
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
@@ -186,14 +264,12 @@ class ModifierClientView(BaseAPIView):
         )
         if serializer.is_valid():
             serializer.save()
-            return Response(
-                {"message": "Profil client modifié avec succès."},
-                status=status.HTTP_200_OK,
-            )
+            return Response({"message": "Profil client modifié avec succès."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ModifierMonProfilChefView(BaseAPIView):
+    """Permet à un chef de compagnie de modifier son propre profil."""
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
@@ -202,14 +278,12 @@ class ModifierMonProfilChefView(BaseAPIView):
         )
         if serializer.is_valid():
             serializer.save()
-            return Response(
-                {"message": "Profil du chef modifié avec succès."},
-                status=status.HTTP_200_OK,
-            )
+            return Response({"message": "Profil du chef modifié avec succès."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ModifierEmployeCompagnieView(BaseAPIView):
+    """Permet à un chef de modifier un employé de sa compagnie (par ID)."""
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, employe_id):
@@ -226,14 +300,12 @@ class ModifierEmployeCompagnieView(BaseAPIView):
         )
         if serializer.is_valid():
             serializer.save()
-            return Response(
-                {"message": "Employé de compagnie modifié avec succès."},
-                status=status.HTTP_200_OK,
-            )
+            return Response({"message": "Employé de compagnie modifié avec succès."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ModifierEmployePlateformeView(BaseAPIView):
+    """Permet à l'admin plateforme de modifier un employé plateforme (par username)."""
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
@@ -259,14 +331,16 @@ class ModifierEmployePlateformeView(BaseAPIView):
         )
         if serializer.is_valid():
             serializer.save()
-            return Response(
-                {"message": "Employé plateforme modifié avec succès."},
-                status=status.HTTP_200_OK,
-            )
+            return Response({"message": "Employé plateforme modifié avec succès."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# ---------------------------------------------------------------------------
+# Désactivation de comptes
+# ---------------------------------------------------------------------------
+
 class DesactiverMonCompteClientView(BaseAPIView):
+    """Permet à un client de désactiver son propre compte."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -280,13 +354,11 @@ class DesactiverMonCompteClientView(BaseAPIView):
         utilisateur.is_active = False
         utilisateur.save()
         logout(request)
-        return Response(
-            {"message": "Compte client désactivé avec succès."},
-            status=status.HTTP_200_OK,
-        )
+        return Response({"message": "Compte client désactivé avec succès."}, status=status.HTTP_200_OK)
 
 
 class DesactiverEmployeCompagnieView(BaseAPIView):
+    """Permet à un chef de compagnie de désactiver un réceptionniste ou contrôleur de sa compagnie."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, employe_id):
@@ -310,10 +382,7 @@ class DesactiverEmployeCompagnieView(BaseAPIView):
                 {"message": "Vous ne pouvez désactiver qu'un employé de votre compagnie."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if employe_cible.role not in [
-            ProfilEmploye.Role.RECEPTIONNISTE,
-            ProfilEmploye.Role.CONTROLEUR,
-        ]:
+        if employe_cible.role not in [ProfilEmploye.Role.RECEPTIONNISTE, ProfilEmploye.Role.CONTROLEUR]:
             return Response(
                 {"message": "Vous ne pouvez désactiver que les réceptionnistes et les contrôleurs."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -323,13 +392,11 @@ class DesactiverEmployeCompagnieView(BaseAPIView):
         employe_cible.save()
         employe_cible.utilisateur.is_active = False
         employe_cible.utilisateur.save()
-        return Response(
-            {"message": "Employé de compagnie désactivé avec succès."},
-            status=status.HTTP_200_OK,
-        )
+        return Response({"message": "Employé de compagnie désactivé avec succès."}, status=status.HTTP_200_OK)
 
 
 class DesactiverEmployePlateformeView(BaseAPIView):
+    """Permet à l'admin plateforme de désactiver un chef, SAV ou comptable (par username)."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -374,7 +441,12 @@ class DesactiverEmployePlateformeView(BaseAPIView):
         return Response({"message": "Employé désactivé avec succès."}, status=status.HTTP_200_OK)
 
 
+# ---------------------------------------------------------------------------
+# Réinitialisation de compte (flux en 3 étapes : demande → vérification → reset)
+# ---------------------------------------------------------------------------
+
 class DemandeReinitialisationView(BaseAPIView):
+    """Étape 1 — envoie un code à 6 chiffres par email, valable 10 minutes."""
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -403,6 +475,7 @@ class DemandeReinitialisationView(BaseAPIView):
 
 
 class VerifierCodeReinitialisationView(BaseAPIView):
+    """Étape 2 — vérifie que le code saisi correspond à celui envoyé par email."""
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -420,11 +493,13 @@ class VerifierCodeReinitialisationView(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Marque le code comme vérifié pour autoriser l'étape 3
         cache.set(f"reset_verified:{email}", True, timeout=600)
         return Response({"message": "Code vérifié avec succès."}, status=status.HTTP_200_OK)
 
 
 class ReinitialiserCompteView(BaseAPIView):
+    """Étape 3 — applique le nouveau username et le nouveau mot de passe."""
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -437,6 +512,7 @@ class ReinitialiserCompteView(BaseAPIView):
         nouveau_username = serializer.validated_data["nouveau_username"]
         nouveau_password = serializer.validated_data["nouveau_password"]
 
+        # Double vérification : code toujours valide ET étape 2 passée
         code_attendu = cache.get(f"reset_code:{email}")
         reset_verifie = cache.get(f"reset_verified:{email}")
         if code_attendu != code or not reset_verifie:
@@ -457,6 +533,7 @@ class ReinitialiserCompteView(BaseAPIView):
         utilisateur.set_password(nouveau_password)
         utilisateur.save()
 
+        # Nettoyage du cache une fois la réinitialisation terminée
         cache.delete(f"reset_code:{email}")
         cache.delete(f"reset_verified:{email}")
         return Response(
