@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(mkdir -p \"c:/Users/Utilisateur/Downloads/projet/plateforme-gestion-bus/web/app_web/src/features/controleur/pages\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Utilisateur\\Downloads\\projet\\plateforme-gestion-bus\\web\\app_web\\src\\features\\controleur"
+    ]
+  }
+}

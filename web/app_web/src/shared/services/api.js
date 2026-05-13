@@ -26,10 +26,25 @@ async function apiFetch(url, options = {}) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-        throw new Error(data.message || data.detail || 'Une erreur est survenue.');
+        // Try to extract a readable message from DRF error formats
+        const msg = data.message
+            || data.detail
+            || (typeof data === 'object' ? _extractDrfError(data) : null)
+            || 'Une erreur est survenue.';
+        throw new Error(msg);
     }
 
     return data;
+}
+
+function _extractDrfError(data) {
+    // DRF validation errors: { field: ["msg"] } or { non_field_errors: ["msg"] }
+    const keys = Object.keys(data);
+    if (!keys.length) return null;
+    const first = data[keys[0]];
+    if (Array.isArray(first) && first.length) return first[0];
+    if (typeof first === 'string') return first;
+    return null;
 }
 
 export { API_BASE_URL, apiFetch };

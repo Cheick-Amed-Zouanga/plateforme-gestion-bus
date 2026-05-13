@@ -7,7 +7,6 @@ from django.core.cache import cache
 from django.core.mail import send_mail
 from django.middleware.csrf import get_token
 from rest_framework import status
-from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -38,8 +37,8 @@ from .serializers import (
 # ---------------------------------------------------------------------------
 
 class BaseAPIView(APIView):
-    # Toutes les vues héritant de cette classe utilisent la session Django
-    authentication_classes = [SessionAuthentication]
+    # Utilise JWTCookieAuthentication défini dans REST_FRAMEWORK settings (pas d'override ici)
+    pass
 
 
 def _set_jwt_cookies(response, refresh):
@@ -241,6 +240,43 @@ class CreationEmployeCompagnieView(BaseAPIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ---------------------------------------------------------------------------
+# Liste des employés (chef de compagnie)
+# ---------------------------------------------------------------------------
+
+class ListeEmployesCompagnieView(BaseAPIView):
+    """Retourne tous les employés actifs de la compagnie du chef connecté."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            profil = request.user.profil_employe
+        except ProfilEmploye.DoesNotExist:
+            return Response({'message': 'Accès refusé.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if profil.role != ProfilEmploye.Role.CHEF_COMPAGNIE or not profil.compagnie:
+            return Response({'message': 'Accès réservé au chef de compagnie.'}, status=status.HTTP_403_FORBIDDEN)
+
+        employes = ProfilEmploye.objects.filter(
+            compagnie=profil.compagnie, actif=True
+        ).exclude(id=profil.id).select_related('utilisateur').order_by('role')
+
+        data = [
+            {
+                'id':         e.id,
+                'username':   e.utilisateur.username,
+                'first_name': e.utilisateur.first_name,
+                'last_name':  e.utilisateur.last_name,
+                'email':      e.utilisateur.email,
+                'role':       e.role,
+                'telephone':  e.telephone,
+                'actif':      e.actif,
+            }
+            for e in employes
+        ]
+        return Response(data)
 
 
 # ---------------------------------------------------------------------------

@@ -112,7 +112,7 @@ class BaseCreationEmployeSerializer(serializers.Serializer):
     nom = serializers.CharField(max_length=150, required=True)
     prenom = serializers.CharField(max_length=150, required=True)
     email = serializers.EmailField(required=True)
-    tel = serializers.CharField(max_length=30, required=True)
+    tel = serializers.CharField(max_length=30, required=False, allow_blank=True, default="")
     username = serializers.CharField(max_length=150, required=True)
     password = serializers.CharField(write_only=True)
     confirmationPassword = serializers.CharField(write_only=True, required=True)

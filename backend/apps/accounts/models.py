@@ -17,7 +17,7 @@ class ProfilClient(models.Model):
         verbose_name = 'Profil client'
         verbose_name_plural = 'Profils clients'
 
-    def __str__(self) -> str:
+    def __str__(self) -> str: 
         return f"ProfilClient({self.utilisateur_id})"
 
 

@@ -11,6 +11,7 @@ from .views import (
     CreationSAVView,
     CreationComptablePlateformeView,
     CreationEmployeCompagnieView,
+    ListeEmployesCompagnieView,
     ModifierClientView,
     ModifierMonProfilChefView,
     ModifierEmployeCompagnieView,
@@ -34,7 +35,8 @@ urlpatterns = [
     path("inscription/client/", InscriptionClientView.as_view(), name="inscription-client"),
     path("me/",                  ProfilConnecteView.as_view(),    name="profil-connecte"),
 
-    # Création de comptes employés
+    # Liste & création de comptes employés
+    path("employes/",         ListeEmployesCompagnieView.as_view(),     name="liste-employes-compagnie"),
     path("chefs/creer/",      CreationChefCompagnieView.as_view(),      name="creer-chef-compagnie"),
     path("sav/creer/",        CreationSAVView.as_view(),                name="creer-sav"),
     path("comptables/creer/", CreationComptablePlateformeView.as_view(), name="creer-comptable-plateforme"),

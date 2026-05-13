@@ -8,8 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 # --- Environnement ---
-SECRET_KEY = os.environ['SECRET_KEY']
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+SECRET_KEY   = os.environ['SECRET_KEY']
+DEBUG        = os.environ.get('DEBUG', 'False') == 'True'
+ORS_API_KEY  = os.environ.get('ORS_API_KEY', '')
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
