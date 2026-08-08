@@ -120,7 +120,7 @@ export default function ControleurValidationBilletPage() {
 
   const handleKey = e => { if (e.key === "Enter") validerBillet(); };
 
-  const scannerColor = type === TYPE.OK ? "#56D364" : type === TYPE.DEJA ? "#F0883E" : type === TYPE.REFUSE ? "#FF7B72" : "#30363D";
+  const scannerColor = type === TYPE.OK ? "#26C2A1" : type === TYPE.DEJA ? "#F0883E" : type === TYPE.REFUSE ? "#E11D48" : "#E5E7EB";
 
   return (
     <div style={st.page}>
@@ -141,7 +141,7 @@ export default function ControleurValidationBilletPage() {
                 muted
               />
               {!scannerOn && (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6E7681", flexDirection: "column", gap: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6B7280", flexDirection: "column", gap: "12px" }}>
                   <div style={{ fontSize: "48px" }}>📷</div>
                   <span style={{ fontSize: "13px" }}>Caméra inactive</span>
                 </div>
@@ -154,15 +154,15 @@ export default function ControleurValidationBilletPage() {
               )}
             </div>
 
-            {cameraError && <p style={{ color: "#FF7B72", fontSize: "12px", margin: "8px 0 0" }}>{cameraError}</p>}
+            {cameraError && <p style={{ color: "#E11D48", fontSize: "12px", margin: "8px 0 0" }}>{cameraError}</p>}
 
             <div style={{ display: "flex", gap: "10px", marginTop: "14px" }}>
               {!scannerOn ? (
-                <button style={{ ...st.btn, backgroundColor: "#1B6CA8", flex: 1 }} onClick={startScanner}>
+                <button style={{ ...st.btn, backgroundColor: "#304FFE", flex: 1 }} onClick={startScanner}>
                   Activer la caméra
                 </button>
               ) : (
-                <button style={{ ...st.btn, backgroundColor: "#2D1117", color: "#FF7B72", flex: 1 }} onClick={stopScanner}>
+                <button style={{ ...st.btn, backgroundColor: "#2D1117", color: "#E11D48", flex: 1 }} onClick={stopScanner}>
                   Arrêter
                 </button>
               )}
@@ -185,7 +185,7 @@ export default function ControleurValidationBilletPage() {
               autoFocus={!canUseCam}
             />
             <button
-              style={{ ...st.btn, backgroundColor: "#009A44", opacity: loading || !numero.trim() ? 0.6 : 1, minWidth: "90px" }}
+              style={{ ...st.btn, backgroundColor: "#26C2A1", opacity: loading || !numero.trim() ? 0.6 : 1, minWidth: "90px" }}
               onClick={() => validerBillet()}
               disabled={loading || !numero.trim()}
             >
@@ -196,22 +196,22 @@ export default function ControleurValidationBilletPage() {
 
         {/* Résultat */}
         {type !== TYPE.IDLE && result && (
-          <div style={{ ...st.resultCard, borderColor: type === TYPE.OK ? "#56D364" : type === TYPE.DEJA ? "#F0883E" : "#FF7B72" }}>
+          <div style={{ ...st.resultCard, borderColor: type === TYPE.OK ? "#26C2A1" : type === TYPE.DEJA ? "#F0883E" : "#E11D48" }}>
 
             {/* En-tête statut */}
             <div style={st.resultHeader}>
               <div style={{
                 ...st.resultIcon,
                 backgroundColor: type === TYPE.OK ? "#1B3A2D" : type === TYPE.DEJA ? "#2D1A0A" : "#2D1117",
-                color: type === TYPE.OK ? "#56D364" : type === TYPE.DEJA ? "#F0883E" : "#FF7B72",
+                color: type === TYPE.OK ? "#26C2A1" : type === TYPE.DEJA ? "#F0883E" : "#E11D48",
               }}>
                 {type === TYPE.OK ? "✓" : type === TYPE.DEJA ? "⚠" : "✗"}
               </div>
               <div>
-                <p style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: type === TYPE.OK ? "#56D364" : type === TYPE.DEJA ? "#F0883E" : "#FF7B72" }}>
+                <p style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: type === TYPE.OK ? "#26C2A1" : type === TYPE.DEJA ? "#F0883E" : "#E11D48" }}>
                   {type === TYPE.OK ? "EMBARQUÉ" : type === TYPE.DEJA ? "DÉJÀ SCANNÉ" : "ACCÈS REFUSÉ"}
                 </p>
-                <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#8B949E" }}>{result.message}</p>
+                <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#6B7280" }}>{result.message}</p>
               </div>
             </div>
 
@@ -245,7 +245,7 @@ export default function ControleurValidationBilletPage() {
               </div>
             )}
 
-            <button style={{ ...st.btn, backgroundColor: "#21262D", marginTop: "14px", width: "100%" }} onClick={reset}>
+            <button style={{ ...st.btn, backgroundColor: "#EEF2F7", marginTop: "14px", width: "100%" }} onClick={reset}>
               Scanner suivant →
             </button>
           </div>
@@ -259,8 +259,8 @@ export default function ControleurValidationBilletPage() {
 function InfoField({ label, value, large, mono }) {
   return (
     <div>
-      <div style={{ fontSize: "10px", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px" }}>{label}</div>
-      <div style={{ fontSize: large ? "15px" : "13px", fontWeight: "700", color: "#E6EDF3", fontFamily: mono ? "monospace" : "inherit" }}>
+      <div style={{ fontSize: "10px", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px" }}>{label}</div>
+      <div style={{ fontSize: large ? "15px" : "13px", fontWeight: "700", color: "#1A1348", fontFamily: mono ? "monospace" : "inherit" }}>
         {value ?? "—"}
       </div>
     </div>
@@ -268,16 +268,16 @@ function InfoField({ label, value, large, mono }) {
 }
 
 const st = {
-  page:        { minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" },
+  page:        { minHeight: "100vh", backgroundColor: "#F5F7FA", fontFamily: "'Poppins', 'Segoe UI', sans-serif" },
   main:        { maxWidth: "560px", margin: "0 auto", padding: "28px 20px 48px", display: "flex", flexDirection: "column", gap: "16px" },
-  card:        { backgroundColor: "#161B22", borderRadius: "12px", padding: "22px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", border: "1.5px solid #21262D" },
-  cardTitle:   { fontSize: "15px", fontWeight: "700", color: "#E6EDF3", margin: "0 0 12px", paddingBottom: "10px", borderBottom: "1px solid #21262D" },
-  hint:        { fontSize: "12px", color: "#6E7681", margin: "0 0 12px" },
+  card:        { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "22px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", border: "1.5px solid #EEF2F7" },
+  cardTitle:   { fontSize: "15px", fontWeight: "700", color: "#1A1348", margin: "0 0 12px", paddingBottom: "10px", borderBottom: "1px solid #EEF2F7" },
+  hint:        { fontSize: "12px", color: "#6B7280", margin: "0 0 12px" },
   inputRow:    { display: "flex", gap: "10px" },
-  input:       { flex: 1, padding: "11px 14px", backgroundColor: "#0D1117", border: "1.5px solid #30363D", borderRadius: "8px", color: "#E6EDF3", fontSize: "14px", fontFamily: "monospace", letterSpacing: "1px" },
+  input:       { flex: 1, padding: "11px 14px", backgroundColor: "#F5F7FA", border: "1.5px solid #E5E7EB", borderRadius: "8px", color: "#1A1348", fontSize: "14px", fontFamily: "monospace", letterSpacing: "1px" },
   btn:         { padding: "11px 18px", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" },
-  resultCard:  { backgroundColor: "#161B22", borderRadius: "12px", padding: "20px 22px", border: "2px solid", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
+  resultCard:  { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "20px 22px", border: "2px solid", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
   resultHeader:{ display: "flex", alignItems: "flex-start", gap: "14px", marginBottom: "16px" },
   resultIcon:  { width: "42px", height: "42px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", fontWeight: "800", flexShrink: 0 },
-  infoGrid:    { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", backgroundColor: "#0D1117", borderRadius: "8px", padding: "14px" },
+  infoGrid:    { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", backgroundColor: "#F5F7FA", borderRadius: "8px", padding: "14px" },
 };

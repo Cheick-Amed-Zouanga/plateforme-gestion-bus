@@ -1,14 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../../../components/Header";
-import SubHeader from "../../../components/SubHeader";
 import apiFetch from "../../../shared/services/api";
+import Modal from "../../../shared/components/Modal";
+import BusSeatPlan from "../../../shared/components/BusSeatPlan";
+import { ChefTrajetCreerForm } from "./ChefTrajetCreerPage";
 
 const STATUT_COLORS = {
   PLANIFIE: { bg: "#1C3260", color: "#79C0FF" },
   EN_COURS: { bg: "#2D1F00", color: "#F0883E" },
-  TERMINE:  { bg: "#112D1F", color: "#56D364" },
-  ANNULE:   { bg: "#2D1117", color: "#FF7B72" },
+  TERMINE:  { bg: "#112D1F", color: "#26C2A1" },
+  ANNULE:   { bg: "#2D1117", color: "#E11D48" },
 };
 
 const STATUTS = [
@@ -31,13 +32,21 @@ export default function ChefTrajetsPage() {
   const [filtre, setFiltre]     = useState("TOUS");
   const [actionId, setActionId] = useState(null);
   const [editStatut, setEditStatut] = useState({}); // { [id]: newStatut }
+  const [modalOpen, setModalOpen] = useState(false);
+  const [planTrajet, setPlanTrajet] = useState(null);
+  const [plan, setPlan] = useState([]);
+  const [planStats, setPlanStats] = useState(null);
+  const [loadingPlan, setLoadingPlan] = useState(false);
 
-  useEffect(() => {
+  const charger = useCallback(() => {
+    setLoading(true);
     apiFetch("/transport/trajets/")
       .then(setTrajets)
       .catch(e => setErreur(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { charger(); }, [charger]);
 
   async function changerStatut(t, statut) {
     setActionId(t.id);
@@ -68,12 +77,28 @@ export default function ChefTrajetsPage() {
     }
   }
 
+  async function ouvrirPlan(t) {
+    setPlanTrajet(t);
+    setPlan([]);
+    setPlanStats(null);
+    setLoadingPlan(true);
+    setErreur("");
+    try {
+      const data = await apiFetch(`/billets/trajets/${t.id}/plan/`);
+      setPlan(data.plan ?? []);
+      setPlanStats(data.stats ?? null);
+    } catch (e) {
+      setErreur(e.message);
+      setPlanTrajet(null);
+    } finally {
+      setLoadingPlan(false);
+    }
+  }
+
   const trajetsFiltres = filtre === "TOUS" ? trajets : trajets.filter(t => t.statut === filtre);
 
   return (
     <div style={st.page}>
-      <Header />
-      <SubHeader title="Trajets" />
       <main style={st.main}>
 
         <button style={st.btnBack} onClick={() => navigate("/chef")}>← Tableau de bord</button>
@@ -92,10 +117,37 @@ export default function ChefTrajetsPage() {
               );
             })}
           </div>
-          <button style={st.btnAdd} onClick={() => navigate("/chef/trajets/creer")}>
+          <button style={st.btnAdd} onClick={() => setModalOpen(true)}>
             + Nouveau trajet
           </button>
         </div>
+
+        <Modal open={modalOpen} title="Planifier un trajet" onClose={() => setModalOpen(false)}>
+          <ChefTrajetCreerForm
+            onCancel={() => setModalOpen(false)}
+            onSuccess={() => {
+              setModalOpen(false);
+              charger();
+            }}
+          />
+        </Modal>
+
+        <Modal
+          open={!!planTrajet}
+          wide
+          title={
+            planTrajet
+              ? `Plan du bus — ${planTrajet.bus_display || ""} · ${planTrajet.ligne_display || ""}`
+              : "Plan du bus"
+          }
+          onClose={() => setPlanTrajet(null)}
+        >
+          {loadingPlan ? (
+            <p style={{ color: "#6B7280", margin: 0 }}>Chargement du plan…</p>
+          ) : (
+            <BusSeatPlan plan={plan} stats={planStats} selectableOnlyLibre={false} />
+          )}
+        </Modal>
 
         {erreur && <div style={st.erreur}>{erreur}</div>}
 
@@ -114,7 +166,7 @@ export default function ChefTrajetsPage() {
                 <tr><td colSpan={6} style={st.empty}>Aucun trajet pour ce filtre.</td></tr>
               )}
               {trajetsFiltres.map(t => {
-                const c = STATUT_COLORS[t.statut] ?? { bg: "#21262D", color: "#E6EDF3" };
+                const c = STATUT_COLORS[t.statut] ?? { bg: "#EEF2F7", color: "#1A1348" };
                 const en_cours = actionId === t.id;
                 const nouveauStatut = editStatut[t.id];
                 return (
@@ -130,6 +182,9 @@ export default function ChefTrajetsPage() {
                     </td>
                     <td style={st.td}>
                       <div style={st.actions}>
+                        <button style={st.btnPlan} onClick={() => ouvrirPlan(t)}>
+                          Places
+                        </button>
                         {/* Sélecteur de statut */}
                         {t.statut !== "TERMINE" && t.statut !== "ANNULE" && (
                           nouveauStatut !== undefined ? (
@@ -173,28 +228,29 @@ export default function ChefTrajetsPage() {
 }
 
 const st = {
-  page:       { minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" },
+  page:       { fontFamily: "'Poppins', 'Segoe UI', sans-serif" },
   main:       { maxWidth: "1200px", margin: "0 auto", padding: "32px 20px" },
   topBar:     { display: "flex", gap: "12px", marginBottom: "20px", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" },
   filtres:    { display: "flex", gap: "6px", flexWrap: "wrap" },
-  filtrBtn:   { padding: "6px 12px", fontSize: "12px", fontWeight: "600", color: "#8B949E", backgroundColor: "#161B22", border: "1.5px solid #30363D", borderRadius: "6px", cursor: "pointer", fontFamily: "inherit" },
-  filtrActif: { backgroundColor: "#21262D", color: "#E6EDF3", borderColor: "#58A6FF" },
-  btnAdd:     { padding: "10px 20px", fontSize: "14px", fontWeight: "700", color: "#fff", backgroundColor: "#009A44", border: "none", borderRadius: "8px", cursor: "pointer", whiteSpace: "nowrap" },
-  erreur:     { padding: "12px 16px", backgroundColor: "#2D1117", color: "#FF7B72", borderRadius: "8px", fontSize: "14px", marginBottom: "16px" },
-  card:       { backgroundColor: "#161B22", borderRadius: "12px", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.4)" },
+  filtrBtn:   { padding: "6px 12px", fontSize: "12px", fontWeight: "600", color: "#6B7280", backgroundColor: "#FFFFFF", border: "1.5px solid #E5E7EB", borderRadius: "6px", cursor: "pointer", fontFamily: "inherit" },
+  filtrActif: { backgroundColor: "#EEF2F7", color: "#1A1348", borderColor: "#58A6FF" },
+  btnAdd:     { padding: "10px 20px", fontSize: "14px", fontWeight: "700", color: "#fff", backgroundColor: "#26C2A1", border: "none", borderRadius: "8px", cursor: "pointer", whiteSpace: "nowrap" },
+  erreur:     { padding: "12px 16px", backgroundColor: "#2D1117", color: "#E11D48", borderRadius: "8px", fontSize: "14px", marginBottom: "16px" },
+  card:       { backgroundColor: "#FFFFFF", borderRadius: "12px", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.4)" },
   table:      { width: "100%", borderCollapse: "collapse" },
-  th:         { padding: "14px 16px", textAlign: "left", fontSize: "11px", fontWeight: "700", color: "#8B949E", textTransform: "uppercase", letterSpacing: "0.8px", borderBottom: "1px solid #30363D", backgroundColor: "#0D1117" },
-  tr:         { borderBottom: "1px solid #21262D" },
-  td:         { padding: "12px 16px", fontSize: "13px", color: "#E6EDF3" },
-  empty:      { padding: "32px", textAlign: "center", color: "#6E7681", fontSize: "14px" },
+  th:         { padding: "14px 16px", textAlign: "left", fontSize: "11px", fontWeight: "700", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px", borderBottom: "1px solid #E5E7EB", backgroundColor: "#F5F7FA" },
+  tr:         { borderBottom: "1px solid #EEF2F7" },
+  td:         { padding: "12px 16px", fontSize: "13px", color: "#1A1348" },
+  empty:      { padding: "32px", textAlign: "center", color: "#6B7280", fontSize: "14px" },
   immat:      { fontFamily: "monospace", fontSize: "13px", color: "#79C0FF" },
   badge:      { padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "600" },
-  btnBack:    { marginBottom: "16px", padding: "8px 16px", fontSize: "13px", fontWeight: "600", color: "#8B949E", backgroundColor: "transparent", border: "1.5px solid #30363D", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit" },
+  btnBack:    { marginBottom: "16px", padding: "8px 16px", fontSize: "13px", fontWeight: "600", color: "#6B7280", backgroundColor: "transparent", border: "1.5px solid #E5E7EB", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit" },
   actions:    { display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" },
+  btnPlan:    { padding: "4px 10px", fontSize: "12px", fontWeight: "600", color: "#304FFE", backgroundColor: "#EEF0FF", border: "1.5px solid #304FFE", borderRadius: "6px", cursor: "pointer", fontFamily: "inherit" },
   btnModif:   { padding: "4px 10px", fontSize: "12px", fontWeight: "600", color: "#79C0FF", backgroundColor: "transparent", border: "1.5px solid #1C3260", borderRadius: "6px", cursor: "pointer", fontFamily: "inherit" },
-  btnDanger:  { padding: "4px 10px", fontSize: "12px", fontWeight: "600", color: "#FF7B72", backgroundColor: "transparent", border: "1.5px solid #FF7B72", borderRadius: "6px", cursor: "pointer", fontFamily: "inherit" },
+  btnDanger:  { padding: "4px 10px", fontSize: "12px", fontWeight: "600", color: "#E11D48", backgroundColor: "transparent", border: "1.5px solid #E11D48", borderRadius: "6px", cursor: "pointer", fontFamily: "inherit" },
   statutEdit: { display: "flex", alignItems: "center", gap: "4px" },
-  selectStatut: { padding: "3px 6px", fontSize: "12px", borderRadius: "4px", border: "1px solid #30363D", backgroundColor: "#0D1117", color: "#E6EDF3", outline: "none", fontFamily: "inherit" },
-  btnOk:      { padding: "3px 8px", fontSize: "12px", fontWeight: "700", color: "#56D364", backgroundColor: "transparent", border: "1px solid #56D364", borderRadius: "4px", cursor: "pointer", fontFamily: "inherit" },
-  btnAnnuler: { padding: "3px 8px", fontSize: "12px", fontWeight: "700", color: "#8B949E", backgroundColor: "transparent", border: "1px solid #30363D", borderRadius: "4px", cursor: "pointer", fontFamily: "inherit" },
+  selectStatut: { padding: "3px 6px", fontSize: "12px", borderRadius: "4px", border: "1px solid #E5E7EB", color: "#1A1348", outline: "none", fontFamily: "inherit" },
+  btnOk:      { padding: "3px 8px", fontSize: "12px", fontWeight: "700", color: "#26C2A1", backgroundColor: "transparent", border: "1px solid #26C2A1", borderRadius: "4px", cursor: "pointer", fontFamily: "inherit" },
+  btnAnnuler: { padding: "3px 8px", fontSize: "12px", fontWeight: "700", color: "#6B7280", backgroundColor: "transparent", border: "1px solid #E5E7EB", borderRadius: "4px", cursor: "pointer", fontFamily: "inherit" },
 };

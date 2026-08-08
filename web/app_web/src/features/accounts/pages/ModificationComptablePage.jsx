@@ -1,14 +1,15 @@
-import Header from "../../../components/Header";
-import SubHeader from "../../../components/SubHeader";
+import { PageHeader } from "../../../shared/components/dashboard";
 import ModificationEmploye from "../../../components/modificationEmploye";
 
 function ModificationComptablePage() {
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" }}>
-      <Header />
-      <SubHeader title="Modification Comptable" />
+    <>
+      <PageHeader
+        title="Modification comptable"
+        subtitle="Mettez à jour un compte comptable plateforme."
+      />
       <ModificationEmploye role="comptable" titre="Modifier un comptable" />
-    </div>
+    </>
   );
 }
 

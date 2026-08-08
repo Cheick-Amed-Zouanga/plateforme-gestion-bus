@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "../../../components/Header";
 import SubHeader from "../../../components/SubHeader";
 import apiFetch from "../../../shared/services/api";
+import BusSeatPlan from "../../../shared/components/BusSeatPlan";
 
 const STEPS = ["Trajet", "Sièges", "Passager", "Confirmation"];
 
@@ -33,6 +34,7 @@ export default function ReceptionnisteVenteBilletPage() {
 
   // Step 1
   const [plan, setPlan] = useState([]);
+  const [planStats, setPlanStats] = useState(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [selectedSiege, setSelectedSiege] = useState(null);
 
@@ -71,8 +73,14 @@ export default function ReceptionnisteVenteBilletPage() {
     setLoadingPlan(true);
     setSelectedSiege(null);
     apiFetch(`/billets/trajets/${selectedTrajet.id}/plan/?arret_depart=${arretDepart}&arret_arrivee=${arretArrivee}`)
-      .then(data => setPlan(data.plan ?? []))
-      .catch(() => setPlan([]))
+      .then(data => {
+        setPlan(data.plan ?? []);
+        setPlanStats(data.stats ?? null);
+      })
+      .catch(() => {
+        setPlan([]);
+        setPlanStats(null);
+      })
       .finally(() => setLoadingPlan(false));
   }, [selectedTrajet, arretDepart, arretArrivee]);
 
@@ -142,9 +150,9 @@ export default function ReceptionnisteVenteBilletPage() {
         <div style={st.stepper}>
           {STEPS.map((label, i) => (
             <div key={i} style={st.stepItem}>
-              <div style={{ ...st.stepDot, backgroundColor: i <= step ? "#009A44" : "#21262D", color: i <= step ? "#fff" : "#6E7681" }}>{i + 1}</div>
-              <span style={{ ...st.stepLabel, color: i === step ? "#E6EDF3" : "#6E7681" }}>{label}</span>
-              {i < STEPS.length - 1 && <div style={{ ...st.stepLine, backgroundColor: i < step ? "#009A44" : "#21262D" }} />}
+              <div style={{ ...st.stepDot, backgroundColor: i <= step ? "#26C2A1" : "#EEF2F7", color: i <= step ? "#fff" : "#6B7280" }}>{i + 1}</div>
+              <span style={{ ...st.stepLabel, color: i === step ? "#1A1348" : "#6B7280" }}>{label}</span>
+              {i < STEPS.length - 1 && <div style={{ ...st.stepLine, backgroundColor: i < step ? "#26C2A1" : "#EEF2F7" }} />}
             </div>
           ))}
         </div>
@@ -204,15 +212,16 @@ export default function ReceptionnisteVenteBilletPage() {
               Choisir un siège — {selectedTrajet?.bus_display} &nbsp;|&nbsp;
               {arrets.find(a => String(a.id) === arretDepart)?.ville} → {arrets.find(a => String(a.id) === arretArrivee)?.ville}
             </h3>
-            <div style={st.legend}>
-              <LegendDot color="#56D364" label="Disponible" />
-              <LegendDot color="#F0883E" label="Guichet (occupé)" />
-              <LegendDot color="#FF7B72" label="App (occupé)" />
-              {selectedSiege && <LegendDot color="#58A6FF" label={`Siège ${selectedSiege.numero} sélectionné`} />}
-            </div>
-
-            {loadingPlan ? <p style={st.muted}>Chargement du plan…</p> : (
-              <BusPlan plan={plan} selected={selectedSiege} onSelect={s => s.etat === "disponible" && setSelectedSiege(s)} />
+            {loadingPlan ? (
+              <p style={st.muted}>Chargement du plan…</p>
+            ) : (
+              <BusSeatPlan
+                plan={plan}
+                stats={planStats}
+                selected={selectedSiege}
+                onSelect={setSelectedSiege}
+                selectableOnlyLibre
+              />
             )}
 
             <div style={st.btnRow}>
@@ -283,25 +292,25 @@ export default function ReceptionnisteVenteBilletPage() {
         {step === 3 && billet && (
           <div style={st.card}>
             <div style={st.successIcon}>✓</div>
-            <h3 style={{ ...st.cardTitle, textAlign: "center", color: "#56D364" }}>Billet émis avec succès</h3>
+            <h3 style={{ ...st.cardTitle, textAlign: "center", color: "#26C2A1" }}>Billet émis avec succès</h3>
 
             <div style={st.billetBox}>
               {/* En-tête compagnie */}
-              <div style={{ textAlign: "center", padding: "14px 0 10px", borderBottom: "1px solid #21262D", marginBottom: "14px" }}>
-                <div style={{ fontSize: "20px", fontWeight: "900", letterSpacing: "3px", color: "#E6EDF3", textTransform: "uppercase" }}>
+              <div style={{ textAlign: "center", padding: "14px 0 10px", borderBottom: "1px solid #EEF2F7", marginBottom: "14px" }}>
+                <div style={{ fontSize: "20px", fontWeight: "900", letterSpacing: "3px", color: "#1A1348", textTransform: "uppercase" }}>
                   {billet.nom_compagnie || "—"}
                 </div>
-                <div style={{ fontSize: "10px", color: "#6E7681", textTransform: "uppercase", letterSpacing: "1.5px", marginTop: "3px" }}>Billet de voyage officiel</div>
+                <div style={{ fontSize: "10px", color: "#6B7280", textTransform: "uppercase", letterSpacing: "1.5px", marginTop: "3px" }}>Billet de voyage officiel</div>
                 <div style={{ ...st.billetNum, marginTop: "8px" }}>{billet.numero_billet}</div>
               </div>
 
               {/* Route */}
-              <div style={{ textAlign: "center", backgroundColor: "#0D1117", borderRadius: "8px", padding: "10px", marginBottom: "14px", borderTop: "3px solid #009A44" }}>
-                <div style={{ fontSize: "18px", fontWeight: "900", color: "#E6EDF3" }}>
-                  {billet.arret_depart_ville} <span style={{ color: "#009A44" }}>→</span> {billet.arret_arrivee_ville}
+              <div style={{ textAlign: "center", backgroundColor: "#F5F7FA", borderRadius: "8px", padding: "10px", marginBottom: "14px", borderTop: "3px solid #26C2A1" }}>
+                <div style={{ fontSize: "18px", fontWeight: "900", color: "#1A1348" }}>
+                  {billet.arret_depart_ville} <span style={{ color: "#26C2A1" }}>→</span> {billet.arret_arrivee_ville}
                 </div>
                 {billet.depart_prevu && (
-                  <div style={{ fontSize: "12px", color: "#8B949E", marginTop: "3px" }}>
+                  <div style={{ fontSize: "12px", color: "#6B7280", marginTop: "3px" }}>
                     {new Date(billet.depart_prevu).toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" })}
                   </div>
                 )}
@@ -309,10 +318,10 @@ export default function ReceptionnisteVenteBilletPage() {
 
               {/* Badges statut */}
               <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap", marginBottom: "14px" }}>
-                <span style={{ ...st.statutBadge, backgroundColor: billet.statut_paiement === "PAYE" ? "#1B3A2D" : "#2D1A0A", color: billet.statut_paiement === "PAYE" ? "#56D364" : "#F0883E", borderColor: billet.statut_paiement === "PAYE" ? "#56D364" : "#F0883E" }}>
+                <span style={{ ...st.statutBadge, backgroundColor: billet.statut_paiement === "PAYE" ? "#1B3A2D" : "#2D1A0A", color: billet.statut_paiement === "PAYE" ? "#26C2A1" : "#F0883E", borderColor: billet.statut_paiement === "PAYE" ? "#26C2A1" : "#F0883E" }}>
                   {billet.statut_paiement === "PAYE" ? "✓ Payé" : "⏳ En attente"}
                 </span>
-                <span style={{ ...st.statutBadge, backgroundColor: "#21262D", color: "#8B949E", borderColor: "#30363D" }}>
+                <span style={{ ...st.statutBadge, backgroundColor: "#EEF2F7", color: "#6B7280", borderColor: "#E5E7EB" }}>
                   {billet.source_display ?? billet.source}
                 </span>
               </div>
@@ -386,15 +395,15 @@ function imprimerBillet(billet) {
   <title>Billet ${billet.numero_billet}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #000; padding: 20px; }
+    body { font-family: 'Poppins', 'Segoe UI', sans-serif; background: #fff; color: #000; padding: 20px; }
     .ticket { max-width: 440px; margin: 0 auto; border: 2px solid #222; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.15); }
-    .hdr { background: #0D1117; color: #fff; padding: 16px 22px 14px; text-align: center; }
+    .hdr { background: #F5F7FA; color: #fff; padding: 16px 22px 14px; text-align: center; }
     .co  { font-size: 24px; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; }
-    .sub { font-size: 10px; color: #8B949E; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 3px; }
+    .sub { font-size: 10px; color: #6B7280; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 3px; }
     .num { font-size: 12px; font-family: monospace; color: #58A6FF; margin-top: 6px; background: rgba(255,255,255,.06); display: inline-block; padding: 2px 10px; border-radius: 4px; }
-    .route { background: #f5f5f5; padding: 12px 22px; text-align: center; border-top: 3px solid #009A44; }
+    .route { background: #f5f5f5; padding: 12px 22px; text-align: center; border-top: 3px solid #26C2A1; }
     .cities { font-size: 22px; font-weight: 900; color: #000; letter-spacing: 1px; }
-    .arrow  { color: #009A44; margin: 0 10px; }
+    .arrow  { color: #26C2A1; margin: 0 10px; }
     .rdate  { font-size: 12px; color: #555; margin-top: 3px; }
     .body   { padding: 14px 22px; }
     .section-title { font-size: 9px; text-transform: uppercase; letter-spacing: 1.2px; color: #999; font-weight: 700; margin: 12px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
@@ -403,7 +412,7 @@ function imprimerBillet(billet) {
     .fv     { font-size: 13px; font-weight: 700; color: #111; margin-top: 1px; }
     .price-row { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 8px; padding: 10px 14px; background: #f9f9f9; border-radius: 8px; }
     .plabel { font-size: 12px; color: #555; }
-    .pvalue { font-size: 24px; font-weight: 900; color: #009A44; }
+    .pvalue { font-size: 24px; font-weight: 900; color: #26C2A1; }
     .st-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
     .st-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; background: ${statutBg}; color: ${statutColor}; }
     .src-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 600; background: #f0f0f0; color: #555; }
@@ -497,60 +506,11 @@ function imprimerBillet(billet) {
 
 // ── Composants visuels ────────────────────────────────────────────────────────
 
-function BusPlan({ plan, selected, onSelect }) {
-  if (!plan.length) return <p style={{ color: "#6E7681", fontSize: "13px" }}>Aucun siège trouvé.</p>;
-  const rows = [];
-  for (let i = 0; i < plan.length; i += 4) rows.push(plan.slice(i, i + 4));
-  return (
-    <div style={{ maxWidth: "340px", margin: "0 auto" }}>
-      <div style={st.busBody}>
-        <div style={st.busDriver}>🚌 Conducteur</div>
-        {rows.map((row, ri) => (
-          <div key={ri} style={st.busRow}>
-            <div style={st.seatPair}>
-              {row[0] && <Seat s={row[0]} selected={selected?.id === row[0].id} onSelect={onSelect} />}
-              {row[1] && <Seat s={row[1]} selected={selected?.id === row[1].id} onSelect={onSelect} />}
-            </div>
-            <div style={st.aisle} />
-            <div style={st.seatPair}>
-              {row[2] && <Seat s={row[2]} selected={selected?.id === row[2].id} onSelect={onSelect} />}
-              {row[3] && <Seat s={row[3]} selected={selected?.id === row[3].id} onSelect={onSelect} />}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Seat({ s, selected, onSelect }) {
-  const color  = selected ? "#58A6FF" : s.etat === "disponible" ? "#56D364" : s.etat === "guichet" ? "#F0883E" : "#FF7B72";
-  const cursor = s.etat === "disponible" ? "pointer" : "not-allowed";
-  return (
-    <div
-      title={s.etat !== "disponible" ? `${s.passager ?? "Occupé"} (${s.etat})` : `Siège ${s.numero}`}
-      onClick={() => onSelect(s)}
-      style={{ ...st.seat, backgroundColor: color + "22", border: `2px solid ${color}`, cursor, color }}
-    >
-      {s.numero}
-    </div>
-  );
-}
-
-function LegendDot({ color, label }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#C9D1D9" }}>
-      <div style={{ width: "12px", height: "12px", borderRadius: "3px", backgroundColor: color }} />
-      {label}
-    </div>
-  );
-}
-
 function InfoChip({ label, value }) {
   return (
-    <div style={{ backgroundColor: "#21262D", borderRadius: "8px", padding: "8px 14px" }}>
-      <div style={{ fontSize: "10px", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
-      <div style={{ fontSize: "14px", fontWeight: "700", color: "#E6EDF3", marginTop: "2px" }}>{value ?? "—"}</div>
+    <div style={{ backgroundColor: "#EEF2F7", borderRadius: "8px", padding: "8px 14px" }}>
+      <div style={{ fontSize: "10px", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
+      <div style={{ fontSize: "14px", fontWeight: "700", color: "#1A1348", marginTop: "2px" }}>{value ?? "—"}</div>
     </div>
   );
 }
@@ -567,8 +527,8 @@ function Field({ label, value, onChange, type = "text", placeholder = "" }) {
 function BilletField({ label, value }) {
   return (
     <div>
-      <div style={{ fontSize: "10px", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
-      <div style={{ fontSize: "14px", color: "#E6EDF3", fontWeight: "600", marginTop: "2px" }}>{value ?? "—"}</div>
+      <div style={{ fontSize: "10px", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
+      <div style={{ fontSize: "14px", color: "#1A1348", fontWeight: "600", marginTop: "2px" }}>{value ?? "—"}</div>
     </div>
   );
 }
@@ -576,43 +536,43 @@ function BilletField({ label, value }) {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const st = {
-  page:         { minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" },
+  page:         { minHeight: "100vh", backgroundColor: "#F5F7FA", fontFamily: "'Poppins', 'Segoe UI', sans-serif" },
   main:         { maxWidth: "700px", margin: "0 auto", padding: "28px 20px 48px", display: "flex", flexDirection: "column", gap: "20px" },
   stepper:      { display: "flex", alignItems: "center", gap: 0 },
   stepItem:     { display: "flex", alignItems: "center", gap: "8px", flex: 1 },
   stepDot:      { width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "700", flexShrink: 0 },
   stepLabel:    { fontSize: "12px", fontWeight: "600", whiteSpace: "nowrap" },
   stepLine:     { flex: 1, height: "2px" },
-  card:         { backgroundColor: "#161B22", borderRadius: "12px", padding: "24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
-  cardTitle:    { fontSize: "16px", fontWeight: "700", color: "#E6EDF3", margin: "0 0 18px", paddingBottom: "12px", borderBottom: "1px solid #21262D" },
-  label:        { display: "block", fontSize: "12px", color: "#8B949E", marginBottom: "6px", marginTop: "14px", fontWeight: "600" },
-  select:       { width: "100%", padding: "10px 12px", backgroundColor: "#0D1117", border: "1px solid #30363D", borderRadius: "8px", color: "#E6EDF3", fontSize: "14px", fontFamily: "inherit" },
-  input:        { width: "100%", padding: "10px 12px", backgroundColor: "#0D1117", border: "1px solid #30363D", borderRadius: "8px", color: "#E6EDF3", fontSize: "14px", fontFamily: "inherit", boxSizing: "border-box" },
-  btnPrimary:   { marginTop: "18px", padding: "11px 24px", backgroundColor: "#009A44", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
-  btnSecondary: { marginTop: "18px", padding: "11px 24px", backgroundColor: "transparent", color: "#8B949E", border: "1px solid #30363D", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
+  card:         { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
+  cardTitle:    { fontSize: "16px", fontWeight: "700", color: "#1A1348", margin: "0 0 18px", paddingBottom: "12px", borderBottom: "1px solid #EEF2F7" },
+  label:        { display: "block", fontSize: "12px", color: "#6B7280", marginBottom: "6px", marginTop: "14px", fontWeight: "600" },
+  select:       { width: "100%", padding: "10px 12px", backgroundColor: "#F5F7FA", border: "1px solid #E5E7EB", borderRadius: "8px", color: "#1A1348", fontSize: "14px", fontFamily: "inherit" },
+  input:        { width: "100%", padding: "10px 12px", backgroundColor: "#F5F7FA", border: "1px solid #E5E7EB", borderRadius: "8px", color: "#1A1348", fontSize: "14px", fontFamily: "inherit", boxSizing: "border-box" },
+  btnPrimary:   { marginTop: "18px", padding: "11px 24px", backgroundColor: "#26C2A1", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
+  btnSecondary: { marginTop: "18px", padding: "11px 24px", backgroundColor: "transparent", color: "#6B7280", border: "1px solid #E5E7EB", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
   btnDownload:  { marginTop: "18px", padding: "11px 24px", backgroundColor: "#1B2A3B", color: "#58A6FF", border: "1px solid #58A6FF44", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
   btnRow:       { display: "flex", gap: "12px", justifyContent: "flex-end", flexWrap: "wrap" },
   legend:       { display: "flex", flexWrap: "wrap", gap: "16px", marginBottom: "20px" },
-  busBody:      { backgroundColor: "#161B22", border: "2px solid #30363D", borderRadius: "16px", padding: "16px", display: "flex", flexDirection: "column", gap: "8px" },
-  busDriver:    { fontSize: "11px", color: "#6E7681", textAlign: "center", padding: "6px", borderBottom: "1px dashed #30363D", marginBottom: "4px" },
+  busBody:      { backgroundColor: "#FFFFFF", border: "2px solid #E5E7EB", borderRadius: "16px", padding: "16px", display: "flex", flexDirection: "column", gap: "8px" },
+  busDriver:    { fontSize: "11px", color: "#6B7280", textAlign: "center", padding: "6px", borderBottom: "1px dashed #E5E7EB", marginBottom: "4px" },
   busRow:       { display: "flex", alignItems: "center", gap: "8px" },
   seatPair:     { display: "flex", gap: "6px", flex: 1 },
   aisle:        { width: "20px" },
   seat:         { flex: 1, height: "36px", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", userSelect: "none" },
   infoRow:      { display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "6px" },
   formGrid:     { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" },
-  errorBanner:  { backgroundColor: "#2D1117", border: "1px solid #FF7B72", color: "#FF7B72", borderRadius: "8px", padding: "10px 16px", fontSize: "13px" },
-  muted:        { color: "#6E7681", fontSize: "13px" },
-  successIcon:  { width: "52px", height: "52px", borderRadius: "50%", backgroundColor: "#1B3A2D", border: "2px solid #56D364", color: "#56D364", fontSize: "24px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" },
-  billetBox:    { backgroundColor: "#0D1117", borderRadius: "10px", padding: "20px", border: "1px solid #21262D", marginTop: "12px" },
-  billetHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #21262D" },
-  billetNum:    { fontSize: "18px", fontWeight: "800", color: "#E6EDF3", fontFamily: "monospace" },
-  billetMode:   { fontSize: "12px", color: "#56D364", backgroundColor: "#1B3A2D", padding: "3px 10px", borderRadius: "20px", fontWeight: "600" },
+  errorBanner:  { backgroundColor: "#2D1117", border: "1px solid #E11D48", color: "#E11D48", borderRadius: "8px", padding: "10px 16px", fontSize: "13px" },
+  muted:        { color: "#6B7280", fontSize: "13px" },
+  successIcon:  { width: "52px", height: "52px", borderRadius: "50%", backgroundColor: "#1B3A2D", border: "2px solid #26C2A1", color: "#26C2A1", fontSize: "24px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" },
+  billetBox:    { backgroundColor: "#F5F7FA", borderRadius: "10px", padding: "20px", border: "1px solid #EEF2F7", marginTop: "12px" },
+  billetHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #EEF2F7" },
+  billetNum:    { fontSize: "18px", fontWeight: "800", color: "#1A1348", fontFamily: "monospace" },
+  billetMode:   { fontSize: "12px", color: "#26C2A1", backgroundColor: "#1B3A2D", padding: "3px 10px", borderRadius: "20px", fontWeight: "600" },
   billetGrid:   { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" },
   statutBadge:  { display: "inline-block", padding: "5px 14px", borderRadius: "20px", fontSize: "13px", fontWeight: "700", border: "1px solid" },
-  paiementBox:  { backgroundColor: "#0D1117", borderRadius: "10px", padding: "16px", marginTop: "18px", border: "1px solid #30363D" },
-  paiementTitle:{ fontSize: "12px", color: "#8B949E", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 12px" },
+  paiementBox:  { backgroundColor: "#F5F7FA", borderRadius: "10px", padding: "16px", marginTop: "18px", border: "1px solid #E5E7EB" },
+  paiementTitle:{ fontSize: "12px", color: "#6B7280", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 12px" },
   paiementOpts: { display: "flex", gap: "10px" },
-  paiementOpt:  { flex: 1, display: "flex", alignItems: "center", gap: "10px", padding: "12px 16px", borderRadius: "8px", border: "2px solid #30363D", cursor: "pointer", color: "#8B949E", backgroundColor: "transparent", transition: "all 0.15s" },
-  paiementOptActif: { borderColor: "#009A44", color: "#56D364", backgroundColor: "#0D1F17" },
+  paiementOpt:  { flex: 1, display: "flex", alignItems: "center", gap: "10px", padding: "12px 16px", borderRadius: "8px", border: "2px solid #E5E7EB", cursor: "pointer", color: "#6B7280", backgroundColor: "transparent", transition: "all 0.15s" },
+  paiementOptActif: { borderColor: "#26C2A1", color: "#26C2A1", backgroundColor: "#0D1F17" },
 };

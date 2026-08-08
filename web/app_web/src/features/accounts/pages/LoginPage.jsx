@@ -20,6 +20,8 @@ function LoginPage() {
     try {
       await loginUser({ username, password });
       const profil = await getConnectedProfile();
+      localStorage.setItem("username", profil.username || username);
+      if (profil.role) localStorage.setItem("role", profil.role);
       redirigerSelonRole(profil, navigate);
     } catch (error) {
       setMessageErreur(error.message);
@@ -110,11 +112,11 @@ function redirigerSelonRole(profil, navigate) {
 const styles = {
   page: {
     minHeight: "100vh",
-    backgroundColor: "#0D1117",
+    backgroundColor: "#F5F7FA",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontFamily: "'Segoe UI', Arial, sans-serif",
+    fontFamily: "'Poppins', 'Segoe UI', sans-serif",
     padding: "20px",
   },
   main: {
@@ -124,18 +126,18 @@ const styles = {
   title: {
     fontSize: "22px",
     fontWeight: "800",
-    color: "#E6EDF3",
+    color: "#1A1348",
     margin: "0 0 4px 0",
   },
   subtitle: {
     fontSize: "12px",
-    color: "#6E7681",
+    color: "#6B7280",
     textTransform: "uppercase",
     letterSpacing: "1px",
     margin: "0 0 24px 0",
   },
   btnDisabled: {
-    backgroundColor: "#1E5C35",
+    backgroundColor: "#9CA3AF",
     cursor: "not-allowed",
   },
   forgotLink: {
@@ -144,7 +146,7 @@ const styles = {
     textAlign: "center",
     background: "none",
     border: "none",
-    color: "#6E7681",
+    color: "#304FFE",
     fontSize: "13px",
     cursor: "pointer",
     textDecoration: "underline",

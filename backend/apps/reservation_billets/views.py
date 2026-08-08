@@ -44,6 +44,19 @@ def _controleur(request):
     return _get_role(request, ProfilEmploye.Role.CONTROLEUR)
 
 
+def _chef(request):
+    return _get_role(request, ProfilEmploye.Role.CHEF_COMPAGNIE)
+
+
+def _staff_compagnie(request):
+    """Réceptionniste, contrôleur ou chef de la même compagnie."""
+    for getter in (_receptionniste, _controleur, _chef):
+        profil, compagnie = getter(request)
+        if compagnie:
+            return profil, compagnie
+    return None, None
+
+
 def _acces_refuse(msg='Accès refusé.'):
     return Response({'message': msg}, status=status.HTTP_403_FORBIDDEN)
 
@@ -306,15 +319,13 @@ class ReceptionnisteTrajetsView(APIView):
 
 
 class PlanBusView(APIView):
-    """Plan visuel des sièges pour un trajet, filtrable par segment."""
+    """Plan visuel des sièges : libre / payé / en attente de paiement."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, trajet_id):
-        profil, compagnie = _receptionniste(request)
+        profil, compagnie = _staff_compagnie(request)
         if not compagnie:
-            profil, compagnie = _controleur(request)
-            if not compagnie:
-                return _acces_refuse()
+            return _acces_refuse()
 
         trajet, err = _get_trajet(trajet_id, compagnie)
         if err:
@@ -334,7 +345,7 @@ class PlanBusView(APIView):
             except ArretLigne.DoesNotExist:
                 pass
 
-        sieges  = list(
+        sieges = list(
             trajet.bus.sieges
             .annotate(num_int=Cast('numero', DjIntegerField()))
             .order_by('num_int')
@@ -345,14 +356,33 @@ class PlanBusView(APIView):
         for s in sieges:
             b = occupes.get(s.id)
             if b:
-                etat    = 'guichet' if b.source == Billet.Source.GUICHET else 'app'
+                if b.statut_paiement == Billet.StatutPaiement.PAYE:
+                    etat = 'paye'
+                else:
+                    etat = 'en_attente'
                 passager = b.nom_passager()
-                segment  = f"{b.arret_depart.ville} → {b.arret_arrivee.ville}" if b.arret_depart and b.arret_arrivee else ''
+                segment = (
+                    f"{b.arret_depart.ville} → {b.arret_arrivee.ville}"
+                    if b.arret_depart and b.arret_arrivee else ''
+                )
+                source = b.source
+                statut_paiement = b.statut_paiement
             else:
                 etat, passager, segment = 'disponible', None, ''
-            plan.append({'id': s.id, 'numero': int(s.numero), 'etat': etat, 'passager': passager, 'segment': segment})
+                source, statut_paiement = None, None
+            plan.append({
+                'id': s.id,
+                'numero': int(s.numero),
+                'etat': etat,
+                'passager': passager,
+                'segment': segment,
+                'source': source,
+                'statut_paiement': statut_paiement,
+            })
 
         dispo = sum(1 for x in plan if x['etat'] == 'disponible')
+        payes = sum(1 for x in plan if x['etat'] == 'paye')
+        en_attente = sum(1 for x in plan if x['etat'] == 'en_attente')
         return Response({
             'bus': trajet.bus.immatriculation,
             'type_bus': trajet.bus.type_bus,
@@ -361,8 +391,8 @@ class PlanBusView(APIView):
             'stats': {
                 'total': len(plan),
                 'disponibles': dispo,
-                'guichet': sum(1 for x in plan if x['etat'] == 'guichet'),
-                'app':     sum(1 for x in plan if x['etat'] == 'app'),
+                'payes': payes,
+                'en_attente': en_attente,
                 'taux_occupation': round((len(plan) - dispo) / len(plan) * 100) if plan else 0,
             },
         })

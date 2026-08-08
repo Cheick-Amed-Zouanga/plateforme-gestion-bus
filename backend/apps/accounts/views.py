@@ -98,7 +98,14 @@ class ConnexionView(APIView):
             role = utilisateur.profil_employe.role
 
         response = Response(
-            {'message': 'Connexion réussie.', 'username': utilisateur.username, 'role': role},
+            {
+                'message': 'Connexion réussie.',
+                'username': utilisateur.username,
+                'role': role,
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'is_client': hasattr(utilisateur, 'profil_client'),
+            },
             status=status.HTTP_200_OK,
         )
         return _set_jwt_cookies(response, refresh)
@@ -109,7 +116,10 @@ class DeconnexionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        refresh_token = request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE)
+        refresh_token = (
+            request.data.get('refresh')
+            or request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE)
+        )
 
         if refresh_token:
             try:
@@ -125,12 +135,15 @@ class DeconnexionView(APIView):
 
 
 class TokenRefreshCookieView(APIView):
-    """Renouvelle l'access token à partir du refresh token stocké en cookie."""
+    """Renouvelle l'access token (cookie web ou body refresh mobile)."""
     permission_classes = [AllowAny]
     authentication_classes = []
 
     def post(self, request):
-        refresh_token = request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE)
+        refresh_token = (
+            request.data.get('refresh')
+            or request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE)
+        )
         if not refresh_token:
             return Response(
                 {'detail': 'Refresh token manquant.'},
@@ -138,7 +151,11 @@ class TokenRefreshCookieView(APIView):
             )
         try:
             refresh = RefreshToken(refresh_token)
-            response = Response({'message': 'Token renouvelé.'})
+            response = Response({
+                'message': 'Token renouvelé.',
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+            })
             return _set_jwt_cookies(response, refresh)
         except TokenError as e:
             return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)

@@ -73,8 +73,8 @@ export default function ControleurRapportPage() {
       <main style={st.main}>
         <div style={st.successCard}>
           <div style={st.successIcon}>✓</div>
-          <h3 style={{ color: "#56D364", margin: "0 0 8px", fontSize: "17px" }}>Rapport soumis avec succès</h3>
-          <p style={{ color: "#6E7681", margin: "0 0 20px", fontSize: "13px" }}>Le trajet a été marqué comme terminé.</p>
+          <h3 style={{ color: "#26C2A1", margin: "0 0 8px", fontSize: "17px" }}>Rapport soumis avec succès</h3>
+          <p style={{ color: "#6B7280", margin: "0 0 20px", fontSize: "13px" }}>Le trajet a été marqué comme terminé.</p>
           <button style={st.btnHome} onClick={() => navigate("/controleur")}>Retour au tableau de bord</button>
         </div>
       </main>
@@ -152,30 +152,30 @@ export default function ControleurRapportPage() {
 function InfoItem({ label, value }) {
   return (
     <div>
-      <div style={{ fontSize: "10px", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
-      <div style={{ fontSize: "14px", color: "#E6EDF3", fontWeight: "700", marginTop: "2px" }}>{value}</div>
+      <div style={{ fontSize: "10px", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
+      <div style={{ fontSize: "14px", color: "#1A1348", fontWeight: "700", marginTop: "2px" }}>{value}</div>
     </div>
   );
 }
 
 const st = {
-  page:        { minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" },
+  page:        { minHeight: "100vh", backgroundColor: "#F5F7FA", fontFamily: "'Poppins', 'Segoe UI', sans-serif" },
   main:        { maxWidth: "620px", margin: "0 auto", padding: "28px 20px 48px", display: "flex", flexDirection: "column", gap: "16px" },
-  card:        { backgroundColor: "#161B22", borderRadius: "12px", padding: "22px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
-  cardTitle:   { fontSize: "15px", fontWeight: "700", color: "#E6EDF3", margin: "0 0 16px", paddingBottom: "10px", borderBottom: "1px solid #21262D" },
-  infoCard:    { backgroundColor: "#161B22", borderRadius: "12px", padding: "18px 22px" },
+  card:        { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "22px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
+  cardTitle:   { fontSize: "15px", fontWeight: "700", color: "#1A1348", margin: "0 0 16px", paddingBottom: "10px", borderBottom: "1px solid #EEF2F7" },
+  infoCard:    { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "18px 22px" },
   infoGrid:    { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" },
   formGrid:    { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" },
-  label:       { display: "block", fontSize: "12px", color: "#8B949E", marginBottom: "6px", marginTop: "14px", fontWeight: "600" },
-  input:       { width: "100%", padding: "10px 12px", backgroundColor: "#0D1117", border: "1px solid #30363D", borderRadius: "8px", color: "#E6EDF3", fontSize: "13px", fontFamily: "inherit", boxSizing: "border-box" },
-  textarea:    { width: "100%", padding: "10px 12px", backgroundColor: "#0D1117", border: "1px solid #30363D", borderRadius: "8px", color: "#E6EDF3", fontSize: "13px", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" },
+  label:       { display: "block", fontSize: "12px", color: "#6B7280", marginBottom: "6px", marginTop: "14px", fontWeight: "600" },
+  input:       { width: "100%", padding: "10px 12px", backgroundColor: "#F5F7FA", border: "1px solid #E5E7EB", borderRadius: "8px", color: "#1A1348", fontSize: "13px", fontFamily: "inherit", boxSizing: "border-box" },
+  textarea:    { width: "100%", padding: "10px 12px", backgroundColor: "#F5F7FA", border: "1px solid #E5E7EB", borderRadius: "8px", color: "#1A1348", fontSize: "13px", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" },
   warningBox:  { display: "flex", alignItems: "flex-start", gap: "10px", backgroundColor: "#2D1A0A", borderRadius: "8px", padding: "12px 14px", marginTop: "16px", border: "1px solid #F0883E33" },
   btnRow:      { display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px" },
   btnSubmit:   { padding: "10px 22px", backgroundColor: "#A371F7", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
-  btnCancel:   { padding: "10px 18px", backgroundColor: "transparent", color: "#6E7681", border: "1px solid #30363D", borderRadius: "8px", fontSize: "14px", cursor: "pointer", fontFamily: "inherit" },
-  errorBanner: { backgroundColor: "#2D1117", border: "1px solid #FF7B72", color: "#FF7B72", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", marginBottom: "12px" },
-  successCard: { backgroundColor: "#161B22", borderRadius: "12px", padding: "48px 24px", textAlign: "center" },
-  successIcon: { width: "52px", height: "52px", borderRadius: "50%", backgroundColor: "#1B3A2D", border: "2px solid #56D364", color: "#56D364", fontSize: "24px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" },
-  btnHome:     { padding: "10px 22px", backgroundColor: "#009A44", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
-  muted:       { color: "#6E7681", fontSize: "13px" },
+  btnCancel:   { padding: "10px 18px", backgroundColor: "transparent", color: "#6B7280", border: "1px solid #E5E7EB", borderRadius: "8px", fontSize: "14px", cursor: "pointer", fontFamily: "inherit" },
+  errorBanner: { backgroundColor: "#2D1117", border: "1px solid #E11D48", color: "#E11D48", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", marginBottom: "12px" },
+  successCard: { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "48px 24px", textAlign: "center" },
+  successIcon: { width: "52px", height: "52px", borderRadius: "50%", backgroundColor: "#1B3A2D", border: "2px solid #26C2A1", color: "#26C2A1", fontSize: "24px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" },
+  btnHome:     { padding: "10px 22px", backgroundColor: "#26C2A1", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
+  muted:       { color: "#6B7280", fontSize: "13px" },
 };

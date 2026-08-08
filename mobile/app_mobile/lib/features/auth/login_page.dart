@@ -4,7 +4,10 @@ import '../../core/theme/app_theme.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  /// Si true, ferme l'écran avec `true` (ex. gate commande) au lieu d'aller à l'accueil.
+  final bool popOnSuccess;
+
+  const LoginPage({super.key, this.popOnSuccess = false});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -40,8 +43,11 @@ class _LoginPageState extends State<LoginPage> {
         password: _passwordController.text,
       );
       if (!mounted) return;
-      // Navigation vers la page d'accueil client après connexion
-      Navigator.pushReplacementNamed(context, '/home');
+      if (widget.popOnSuccess && Navigator.canPop(context)) {
+        Navigator.pop(context, true);
+      } else {
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+      }
     } on AuthException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {

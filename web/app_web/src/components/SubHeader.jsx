@@ -18,10 +18,10 @@ function SubHeader({ title, backPath }) {
 
 const styles = {
   container: {
-    backgroundColor: "#0D1117",
+    backgroundColor: "#FFFFFF",
     padding: "14px 28px",
-    borderBottom: "1px solid #21262D",
-    fontFamily: "'Segoe UI', Arial, sans-serif",
+    borderBottom: "1px solid #E5E7EB",
+    fontFamily: "'Poppins', 'Segoe UI', sans-serif",
   },
   inner: {
     display: "flex",
@@ -30,9 +30,9 @@ const styles = {
   },
   backBtn: {
     background: "none",
-    border: "1px solid #30363D",
-    color: "#8B949E",
-    borderRadius: "6px",
+    border: "1px solid #E5E7EB",
+    color: "#6B7280",
+    borderRadius: "10px",
     padding: "5px 12px",
     fontSize: "13px",
     cursor: "pointer",
@@ -43,7 +43,7 @@ const styles = {
     margin: 0,
     fontSize: "20px",
     fontWeight: "700",
-    color: "#E6EDF3",
+    color: "#1A1348",
   },
 };
 

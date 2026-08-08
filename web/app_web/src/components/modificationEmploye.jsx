@@ -37,7 +37,7 @@ function ModificationEmploye({ titre }) {
   ];
 
   return (
-    <main style={s.main}>
+    <div className="dash-form-wrap">
       <div style={s.card}>
         <form onSubmit={gererSoumission}>
           {champs.map(({ label, name, required, type = "text" }) => (
@@ -59,7 +59,7 @@ function ModificationEmploye({ titre }) {
           </div>
         </form>
       </div>
-    </main>
+    </div>
   );
 }
 

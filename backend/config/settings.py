@@ -12,7 +12,7 @@ SECRET_KEY   = os.environ['SECRET_KEY']
 DEBUG        = os.environ.get('DEBUG', 'False') == 'True'
 ORS_API_KEY  = os.environ.get('ORS_API_KEY', '')
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '10.0.2.2', '0.0.0.0']
 
 
 # --- Applications ---

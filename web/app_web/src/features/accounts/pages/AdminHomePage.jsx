@@ -1,156 +1,182 @@
 import { useNavigate } from "react-router-dom";
-import Header from "../../../components/Header";
-import SubHeader from "../../../components/SubHeader";
+import {
+  ActionButton,
+  PageHeader,
+  Panel,
+  ShortcutCard,
+  StatCard,
+} from "../../../shared/components/dashboard";
 
 function AdminHomePage() {
   const navigate = useNavigate();
 
   return (
-    <div style={styles.page}>
-      <Header />
-      <SubHeader title="Accueil Administrateur" />
+    <>
+      <PageHeader
+        title="Console administrateur"
+        subtitle="Pilotez les comptes plateforme, les rôles et la supervision TERRASSO."
+        actions={
+          <ActionButton variant="green" onClick={() => navigate("/admin/inscriptionChef")}>
+            + Nouveau chef
+          </ActionButton>
+        }
+      />
 
-      <main style={styles.main}>
+      <div className="dash-stats">
+        <StatCard label="Rôles gérés" value="3" hint="Chef · SAV · Comptable" accent="#2B7BBF" />
+        <StatCard label="Actions RH" value="9" hint="Créer · Modifier · Désactiver" accent="#1FAA59" />
+        <StatCard label="Modules ops" value="3" hint="Résa · SAV · Supervision" accent="#E08A2B" />
+        <StatCard label="Statut" value="OK" hint="Plateforme opérationnelle" accent="#304FFE" />
+      </div>
 
-        {/* Gestion des employés */}
-        <section style={styles.card}>
-          <h2 style={styles.sectionTitle}>Gestion des employés</h2>
+      <div className="dash-grid-2">
+        <Panel
+          title="Accès rapides"
+          subtitle="Les actions les plus utilisées au quotidien"
+        >
+          <div className="dash-shortcuts">
+            <ShortcutCard
+              icon="C"
+              title="Inscrire un chef"
+              description="Créer une compagnie et son responsable"
+              accent="#1FAA59"
+              onClick={() => navigate("/admin/inscriptionChef")}
+            />
+            <ShortcutCard
+              icon="S"
+              title="Inscrire un SAV"
+              description="Ajouter un agent support plateforme"
+              accent="#2B7BBF"
+              onClick={() => navigate("/admin/inscriptionSav")}
+            />
+            <ShortcutCard
+              icon="$"
+              title="Inscrire un comptable"
+              description="Ouvrir un compte finance plateforme"
+              accent="#7C5CBF"
+              onClick={() => navigate("/admin/inscriptionComptable")}
+            />
+            <ShortcutCard
+              icon="M"
+              title="Modifier un profil"
+              description="Mettre à jour un employé plateforme"
+              accent="#2B7BBF"
+              onClick={() => navigate("/admin/modificationChefCompagnie")}
+            />
+            <ShortcutCard
+              icon="X"
+              title="Désactiver un compte"
+              description="Révoquer l'accès d'un employé"
+              accent="#304FFE"
+              onClick={() => navigate("/admin/desactivationChefCompagnie")}
+            />
+            <ShortcutCard
+              icon="◉"
+              title="Supervision"
+              description="Tableau de bord et journaux"
+              accent="#E08A2B"
+              disabled
+            />
+          </div>
+        </Panel>
 
-          <div style={styles.actionGroup}>
-            <p style={styles.groupLabel}>Inscription</p>
-            <div style={styles.btnRow}>
-              <ActionBtn label="Chef de compagnie" onClick={() => navigate("/admin/inscriptionChef")}      variant="green" />
-              <ActionBtn label="Agent SAV"          onClick={() => navigate("/admin/inscriptionSav")}       variant="green" />
-              <ActionBtn label="Comptable"          onClick={() => navigate("/admin/inscriptionComptable")} variant="green" />
+        <Panel
+          title="À venir"
+          subtitle="Modules déjà prévus dans la roadmap"
+          action={<span className="dash-badge soon">Roadmap</span>}
+        >
+          <div className="dash-list">
+            <div className="dash-list-item">
+              <div>
+                <strong>Gestion des réservations</strong>
+                <div style={{ color: "var(--dash-muted)", fontSize: 13 }}>
+                  Historique, annulations, files d'attente
+                </div>
+              </div>
+              <span className="dash-badge soon">Soon</span>
+            </div>
+            <div className="dash-list-item">
+              <div>
+                <strong>Service à la clientèle</strong>
+                <div style={{ color: "var(--dash-muted)", fontSize: 13 }}>
+                  Réclamations et tickets SAV
+                </div>
+              </div>
+              <span className="dash-badge soon">Soon</span>
+            </div>
+            <div className="dash-list-item">
+              <div>
+                <strong>Journaux d'activité</strong>
+                <div style={{ color: "var(--dash-muted)", fontSize: 13 }}>
+                  Audit des actions administrateur
+                </div>
+              </div>
+              <span className="dash-badge soon">Soon</span>
             </div>
           </div>
+        </Panel>
+      </div>
 
-          <div style={styles.actionGroup}>
-            <p style={styles.groupLabel}>Modification</p>
-            <div style={styles.btnRow}>
-              <ActionBtn label="Chef de compagnie" onClick={() => navigate("/admin/modificationChefCompagnie")} variant="blue" />
-              <ActionBtn label="Agent SAV"          onClick={() => navigate("/admin/modificationSav")}           variant="blue" />
-              <ActionBtn label="Comptable"          onClick={() => navigate("/admin/modificationComptable")}     variant="blue" />
-            </div>
+      <Panel
+        title="Gestion des employés"
+        subtitle="Création, modification et désactivation des comptes plateforme"
+      >
+        <div style={{ marginBottom: 18 }}>
+          <p style={groupLabel}>Inscription</p>
+          <div className="dash-actions">
+            <ActionButton variant="green" onClick={() => navigate("/admin/inscriptionChef")}>
+              Chef de compagnie
+            </ActionButton>
+            <ActionButton variant="green" onClick={() => navigate("/admin/inscriptionSav")}>
+              Agent SAV
+            </ActionButton>
+            <ActionButton variant="green" onClick={() => navigate("/admin/inscriptionComptable")}>
+              Comptable
+            </ActionButton>
           </div>
+        </div>
 
-          <div style={{ ...styles.actionGroup, marginBottom: 0 }}>
-            <p style={styles.groupLabel}>Désactivation</p>
-            <div style={styles.btnRow}>
-              <ActionBtn label="Chef de compagnie" onClick={() => navigate("/admin/desactivationChefCompagnie")} variant="red" />
-              <ActionBtn label="Agent SAV"          onClick={() => navigate("/admin/desactivationSav")}           variant="red" />
-              <ActionBtn label="Comptable"          onClick={() => navigate("/admin/desactivationComptable")}     variant="red" />
-            </div>
+        <div style={{ marginBottom: 18 }}>
+          <p style={groupLabel}>Modification</p>
+          <div className="dash-actions">
+            <ActionButton variant="blue" onClick={() => navigate("/admin/modificationChefCompagnie")}>
+              Chef de compagnie
+            </ActionButton>
+            <ActionButton variant="blue" onClick={() => navigate("/admin/modificationSav")}>
+              Agent SAV
+            </ActionButton>
+            <ActionButton variant="blue" onClick={() => navigate("/admin/modificationComptable")}>
+              Comptable
+            </ActionButton>
           </div>
-        </section>
+        </div>
 
-        {/* Gestion des réservations */}
-        <section style={styles.card}>
-          <h2 style={styles.sectionTitle}>Gestion des réservations</h2>
-          <div style={styles.btnRow}>
-            <ActionBtn label="Historique des réservations"   variant="neutral" />
-            <ActionBtn label="Billets annulés"               variant="neutral" />
-            <ActionBtn label="Réservations en attente"       variant="neutral" />
+        <div>
+          <p style={groupLabel}>Désactivation</p>
+          <div className="dash-actions">
+            <ActionButton variant="red" onClick={() => navigate("/admin/desactivationChefCompagnie")}>
+              Chef de compagnie
+            </ActionButton>
+            <ActionButton variant="red" onClick={() => navigate("/admin/desactivationSav")}>
+              Agent SAV
+            </ActionButton>
+            <ActionButton variant="red" onClick={() => navigate("/admin/desactivationComptable")}>
+              Comptable
+            </ActionButton>
           </div>
-        </section>
-
-        {/* Service à la clientèle */}
-        <section style={styles.card}>
-          <h2 style={styles.sectionTitle}>Service à la clientèle</h2>
-          <div style={styles.btnRow}>
-            <ActionBtn label="Page service clientèle"  variant="neutral" />
-            <ActionBtn label="Consulter les réclamations" variant="neutral" />
-          </div>
-        </section>
-
-        {/* Supervision */}
-        <section style={styles.card}>
-          <h2 style={styles.sectionTitle}>Supervision</h2>
-          <div style={styles.btnRow}>
-            <ActionBtn label="Tableau de bord"      variant="neutral" />
-            <ActionBtn label="Journaux d'activité"  variant="neutral" />
-          </div>
-        </section>
-
-      </main>
-    </div>
+        </div>
+      </Panel>
+    </>
   );
 }
 
-// Bouton réutilisable avec variante de couleur
-function ActionBtn({ label, onClick, variant }) {
-  const colors = {
-    green:   { backgroundColor: "#009A44", color: "#fff", border: "none" },
-    blue:    { backgroundColor: "#1B6CA8", color: "#fff", border: "none" },
-    red:     { backgroundColor: "#C41E3A", color: "#fff", border: "none" },
-    neutral: { backgroundColor: "#21262D", color: "#E6EDF3", border: "1.5px solid #30363D" },
-  };
-  return (
-    <button onClick={onClick} style={{ ...styles.btn, ...colors[variant] }}>
-      {label}
-    </button>
-  );
-}
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    backgroundColor: "#0D1117",
-    fontFamily: "'Segoe UI', Arial, sans-serif",
-  },
-
-  main: {
-    maxWidth: "900px",
-    margin: "0 auto",
-    padding: "32px 20px 48px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
-
-  card: {
-    backgroundColor: "#161B22",
-    borderRadius: "14px",
-    padding: "28px 30px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
-    borderLeft: "4px solid #C41E3A",
-  },
-
-  sectionTitle: {
-    fontSize: "17px",
-    fontWeight: "700",
-    color: "#E6EDF3",
-    margin: "0 0 20px 0",
-  },
-
-  actionGroup: {
-    marginBottom: "18px",
-  },
-
-  groupLabel: {
-    fontSize: "11px",
-    fontWeight: "700",
-    color: "#6E7681",
-    textTransform: "uppercase",
-    letterSpacing: "1.2px",
-    margin: "0 0 10px 0",
-  },
-
-  btnRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "10px",
-  },
-
-  btn: {
-    padding: "10px 18px",
-    fontSize: "14px",
-    fontWeight: "600",
-    borderRadius: "8px",
-    cursor: "pointer",
-    letterSpacing: "0.2px",
-    fontFamily: "inherit",
-  },
+const groupLabel = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: "var(--dash-muted)",
+  textTransform: "uppercase",
+  letterSpacing: "1.1px",
+  margin: "0 0 10px",
 };
 
 export default AdminHomePage;

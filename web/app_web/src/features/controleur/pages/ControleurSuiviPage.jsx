@@ -71,7 +71,7 @@ export default function ControleurSuiviPage() {
         </div>
 
         {feedback && (
-          <div style={{ ...st.feedbackBanner, borderColor: "#56D364", color: "#56D364" }}>{feedback}</div>
+          <div style={{ ...st.feedbackBanner, borderColor: "#26C2A1", color: "#26C2A1" }}>{feedback}</div>
         )}
 
         {/* Timeline des arrêts */}
@@ -81,8 +81,8 @@ export default function ControleurSuiviPage() {
             {(arrets ?? []).map((a, i) => {
               const isPast = a.est_passee;
               const isCurrent = !isPast && i === (arrets ?? []).findIndex(x => !x.est_passee);
-              const dotColor = isPast ? "#56D364" : isCurrent ? "#F0883E" : "#30363D";
-              const lineColor = isPast ? "#56D364" : "#21262D";
+              const dotColor = isPast ? "#26C2A1" : isCurrent ? "#F0883E" : "#E5E7EB";
+              const lineColor = isPast ? "#26C2A1" : "#EEF2F7";
 
               return (
                 <div key={a.id} style={st.timelineItem}>
@@ -93,7 +93,7 @@ export default function ControleurSuiviPage() {
                   <div style={{ ...st.stopContent, paddingBottom: i < arrets.length - 1 ? "16px" : "0" }}>
                     <div style={st.stopRow}>
                       <div>
-                        <span style={{ fontWeight: "700", color: isPast ? "#56D364" : isCurrent ? "#F0883E" : "#E6EDF3", fontSize: "14px" }}>
+                        <span style={{ fontWeight: "700", color: isPast ? "#26C2A1" : isCurrent ? "#F0883E" : "#1A1348", fontSize: "14px" }}>
                           {a.ville}
                         </span>
                         {a.est_depart && <span style={st.tagDepart}>Départ</span>}
@@ -140,18 +140,18 @@ export default function ControleurSuiviPage() {
 function InfoItem({ label, value }) {
   return (
     <div>
-      <div style={{ fontSize: "10px", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
-      <div style={{ fontSize: "14px", color: "#E6EDF3", fontWeight: "700", marginTop: "2px" }}>{value}</div>
+      <div style={{ fontSize: "10px", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
+      <div style={{ fontSize: "14px", color: "#1A1348", fontWeight: "700", marginTop: "2px" }}>{value}</div>
     </div>
   );
 }
 
 const st = {
-  page:          { minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" },
+  page:          { minHeight: "100vh", backgroundColor: "#F5F7FA", fontFamily: "'Poppins', 'Segoe UI', sans-serif" },
   main:          { maxWidth: "620px", margin: "0 auto", padding: "28px 20px 48px", display: "flex", flexDirection: "column", gap: "16px" },
-  card:          { backgroundColor: "#161B22", borderRadius: "12px", padding: "22px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
-  cardTitle:     { fontSize: "15px", fontWeight: "700", color: "#E6EDF3", margin: "0 0 16px", paddingBottom: "10px", borderBottom: "1px solid #21262D" },
-  infoCard:      { backgroundColor: "#161B22", borderRadius: "12px", padding: "18px 22px" },
+  card:          { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "22px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
+  cardTitle:     { fontSize: "15px", fontWeight: "700", color: "#1A1348", margin: "0 0 16px", paddingBottom: "10px", borderBottom: "1px solid #EEF2F7" },
+  infoCard:      { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "18px 22px" },
   infoGrid:      { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" },
   feedbackBanner:{ backgroundColor: "#1B3A2D", border: "1px solid", borderRadius: "8px", padding: "10px 16px", fontSize: "13px" },
   timeline:      { display: "flex", flexDirection: "column" },
@@ -161,12 +161,12 @@ const st = {
   line:          { width: "2px", flex: 1, minHeight: "12px", margin: "4px 0" },
   stopContent:   { flex: 1 },
   stopRow:       { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  tagDepart:     { marginLeft: "8px", fontSize: "10px", color: "#56D364", backgroundColor: "#1B3A2D", padding: "1px 6px", borderRadius: "10px", fontWeight: "600" },
-  tagArrivee:    { marginLeft: "8px", fontSize: "10px", color: "#FF7B72", backgroundColor: "#2D1117", padding: "1px 6px", borderRadius: "10px", fontWeight: "600" },
-  tagPasse:      { marginLeft: "8px", fontSize: "10px", color: "#56D364", fontWeight: "600" },
+  tagDepart:     { marginLeft: "8px", fontSize: "10px", color: "#26C2A1", backgroundColor: "#1B3A2D", padding: "1px 6px", borderRadius: "10px", fontWeight: "600" },
+  tagArrivee:    { marginLeft: "8px", fontSize: "10px", color: "#E11D48", backgroundColor: "#2D1117", padding: "1px 6px", borderRadius: "10px", fontWeight: "600" },
+  tagPasse:      { marginLeft: "8px", fontSize: "10px", color: "#26C2A1", fontWeight: "600" },
   btnMarquer:    { marginTop: "8px", padding: "6px 14px", backgroundColor: "#F0883E22", color: "#F0883E", border: "1px solid #F0883E", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
   actionRow:     { display: "flex", gap: "10px", flexWrap: "wrap" },
   btnIncident:   { flex: 1, padding: "12px", backgroundColor: "#2D1A0A", color: "#F0883E", border: "1px solid #F0883E44", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
   btnRapport:    { flex: 1, padding: "12px", backgroundColor: "#1B1033", color: "#A371F7", border: "1px solid #A371F744", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
-  muted:         { color: "#6E7681", fontSize: "13px" },
+  muted:         { color: "#6B7280", fontSize: "13px" },
 };

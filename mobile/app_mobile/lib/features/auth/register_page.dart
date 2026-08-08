@@ -110,11 +110,11 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Inscription réussie ! Vous pouvez vous connecter.'),
+          content: Text('Compte créé — vous êtes connecté.'),
           backgroundColor: AppColors.primaryBlue,
         ),
       );
-      Navigator.pop(context);
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
     } on AuthException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {

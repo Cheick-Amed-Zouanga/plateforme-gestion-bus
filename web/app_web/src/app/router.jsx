@@ -4,7 +4,9 @@ import SessionTimeout from "../components/SessionTimeOut";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 import LoginPage from "../features/accounts/pages/LoginPage";
+import AdminLayout from "../features/accounts/layouts/AdminLayout";
 import AdminHomePage from "../features/accounts/pages/AdminHomePage";
+import ChefLayout from "../features/chef/layouts/ChefLayout";
 import ChefHomePage from "../features/accounts/pages/ChefHomePage";
 import SavHomePage from "../features/accounts/pages/SavHomePage";
 import ComptableHomePage from "../features/accounts/pages/ComptableHomePage";
@@ -74,19 +76,43 @@ function Router() {
           path="/admin"
           element={
             <ProtectedRoute roles={ADMIN}>
-              <AdminHomePage />
+              <AdminLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<AdminHomePage />} />
+          <Route path="inscriptionChef" element={<InscriptionChef />} />
+          <Route path="inscriptionSav" element={<InscriptionSav />} />
+          <Route path="inscriptionComptable" element={<InscriptionComptable />} />
+          <Route path="modificationChefCompagnie" element={<ModificationChefPage />} />
+          <Route path="modificationSav" element={<ModificationSavPage />} />
+          <Route path="modificationComptable" element={<ModificationComptablePage />} />
+          <Route path="desactivationChefCompagnie" element={<DesactivationChefPage />} />
+          <Route path="desactivationSav" element={<DesactivationSavPage />} />
+          <Route path="desactivationComptable" element={<DesactivationComptablePage />} />
+        </Route>
 
         <Route
           path="/chef"
           element={
             <ProtectedRoute roles={CHEF}>
-              <ChefHomePage />
+              <ChefLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<ChefHomePage />} />
+          <Route path="bus" element={<ChefBusPage />} />
+          <Route path="bus/creer" element={<ChefBusCreerPage />} />
+          <Route path="lignes" element={<ChefLignesPage />} />
+          <Route path="lignes/creer" element={<ChefLigneCreerPage />} />
+          <Route path="trajets" element={<ChefTrajetsPage />} />
+          <Route path="trajets/creer" element={<ChefTrajetCreerPage />} />
+          <Route path="employes" element={<ChefEmployesPage />} />
+          <Route path="employes/inscrire" element={<ChefEmployesPage />} />
+          <Route path="tarifs" element={<ChefTarifsPage />} />
+          <Route path="tarifs/creer" element={<ChefTarifsCreerPage />} />
+          <Route path="historique" element={<ChefHistoriquePage />} />
+        </Route>
 
         <Route
           path="/sav"
@@ -139,103 +165,10 @@ function Router() {
         <Route path="/controleur/rapport/:trajetId"          element={<ProtectedRoute roles={CONTROLEUR}><ControleurRapportPage /></ProtectedRoute>} />
         <Route path="/controleur/embarquement/:trajetId"    element={<ProtectedRoute roles={CONTROLEUR}><ControleurEmbarquementPage /></ProtectedRoute>} />
 
-        <Route
-          path="/admin/inscriptionChef"
-          element={
-            <ProtectedRoute roles={ADMIN}>
-              <InscriptionChef />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/inscriptionSav"
-          element={
-            <ProtectedRoute roles={ADMIN}>
-              <InscriptionSav />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/inscriptionComptable"
-          element={
-            <ProtectedRoute roles={ADMIN}>
-              <InscriptionComptable />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* ── Routes Chef de compagnie ── */}
-        <Route path="/chef/bus"               element={<ProtectedRoute roles={CHEF}><ChefBusPage /></ProtectedRoute>} />
-        <Route path="/chef/bus/creer"         element={<ProtectedRoute roles={CHEF}><ChefBusCreerPage /></ProtectedRoute>} />
-        <Route path="/chef/lignes"            element={<ProtectedRoute roles={CHEF}><ChefLignesPage /></ProtectedRoute>} />
-        <Route path="/chef/lignes/creer"      element={<ProtectedRoute roles={CHEF}><ChefLigneCreerPage /></ProtectedRoute>} />
-        <Route path="/chef/trajets"           element={<ProtectedRoute roles={CHEF}><ChefTrajetsPage /></ProtectedRoute>} />
-        <Route path="/chef/trajets/creer"     element={<ProtectedRoute roles={CHEF}><ChefTrajetCreerPage /></ProtectedRoute>} />
-        <Route path="/chef/employes" element={<ProtectedRoute roles={CHEF}><ChefEmployesPage /></ProtectedRoute>} />
-        <Route path="/chef/employes/inscrire" element={<ProtectedRoute roles={CHEF}><ChefEmployesPage /></ProtectedRoute>} />
-        <Route path="/chef/tarifs"            element={<ProtectedRoute roles={CHEF}><ChefTarifsPage /></ProtectedRoute>} />
-        <Route path="/chef/tarifs/creer"      element={<ProtectedRoute roles={CHEF}><ChefTarifsCreerPage /></ProtectedRoute>} />
-        <Route path="/chef/historique"        element={<ProtectedRoute roles={CHEF}><ChefHistoriquePage /></ProtectedRoute>} />
-
         <Route path="/recuperationCompte" element={<RecuperationComptePage />} />
         <Route path="/verificationCode" element={<VerificationCodePage />} />
         <Route path="/reinitialisationCompte" element={<ReinitialisationComptePage />} />
 
-        <Route
-          path="/admin/modificationChefCompagnie"
-          element={
-            <ProtectedRoute roles={ADMIN}>
-              <ModificationChefPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/modificationSav"
-          element={
-            <ProtectedRoute roles={ADMIN}>
-              <ModificationSavPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/modificationComptable"
-          element={
-            <ProtectedRoute roles={ADMIN}>
-              <ModificationComptablePage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/desactivationChefCompagnie"
-          element={
-            <ProtectedRoute roles={ADMIN}>
-              <DesactivationChefPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/desactivationSav"
-          element={
-            <ProtectedRoute roles={ADMIN}>
-              <DesactivationSavPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/desactivationComptable"
-          element={
-            <ProtectedRoute roles={ADMIN}>
-              <DesactivationComptablePage />
-            </ProtectedRoute>
-          }
-        />
       </Routes>
     </BrowserRouter>
   );

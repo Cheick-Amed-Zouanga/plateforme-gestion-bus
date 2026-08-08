@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../../../components/Header";
-import SubHeader from "../../../components/SubHeader";
+import { PageHeader } from "../../../shared/components/dashboard";
 import { creerSav } from "../services/authservice";
 import { darkFormStyles } from "../../../shared/styles/darkTheme";
 
@@ -47,10 +46,12 @@ function InscriptionSav() {
   ];
 
   return (
-    <div style={s.page}>
-      <Header />
-      <SubHeader title="Inscription Agent Service à la clientèle" />
-      <main style={s.main}>
+    <>
+      <PageHeader
+        title="Inscription agent SAV"
+        subtitle="Ajoute un agent de service à la clientèle plateforme."
+      />
+      <div className="dash-form-wrap">
         <div style={s.card}>
           <form onSubmit={gererSoumission}>
             {champs.map(({ label, name, type }) => (
@@ -72,8 +73,8 @@ function InscriptionSav() {
             </div>
           </form>
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }
 
