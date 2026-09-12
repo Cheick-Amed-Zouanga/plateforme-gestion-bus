@@ -16,6 +16,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import ProfilEmploye
 from .serializers import (
     ConnexionSerializer,
+    TokenObtainPairSerializer,
     CreationChefCompagnieSerializer,
     CreationComptablePlateformeSerializer,
     CreationEmployeCompagnieSerializer,
@@ -109,6 +110,52 @@ class ConnexionView(APIView):
             status=status.HTTP_200_OK,
         )
         return _set_jwt_cookies(response, refresh)
+
+
+class TokenObtainPairView(APIView):
+    """Login par email + password (compatible frontend React)"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = TokenObtainPairSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        utilisateur = serializer.validated_data['utilisateur']
+        refresh = RefreshToken.for_user(utilisateur)
+
+        # Récupère les informations utilisateur
+        user_data = {
+            'id': utilisateur.id,
+            'email': utilisateur.email,
+            'username': utilisateur.username,
+            'first_name': utilisateur.first_name,
+            'last_name': utilisateur.last_name,
+        }
+
+        # Récupère la compagnie si c'est un employé
+        company_data = None
+        is_super_admin = utilisateur.is_superuser
+        if hasattr(utilisateur, 'profil_employe'):
+            profil = utilisateur.profil_employe
+            if profil.compagnie:
+                company_data = {
+                    'id': profil.compagnie.id,
+                    'nom': profil.compagnie.nom,
+                }
+
+        response = Response(
+            {
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'user': user_data,
+                'company': company_data,
+                'is_super_admin': is_super_admin,
+            },
+            status=status.HTTP_200_OK,
+        )
+        return response
 
 
 class DeconnexionView(APIView):

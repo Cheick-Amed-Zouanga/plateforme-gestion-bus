@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from .models import ProfilClient, ContactConfiance, ProfilEmploye
 from apps.transport.models import CompagnieTransport
+from apps.iam.models import CustomUser
 
 
 class InscriptionClientSerializer(serializers.Serializer):
@@ -367,6 +368,32 @@ class ConnexionSerializer(serializers.Serializer):
 
         if utilisateur is None:
             raise serializers.ValidationError("Nom d'utilisateur ou mot de passe incorrect.")
+
+        if not utilisateur.is_active:
+            raise serializers.ValidationError("Ce compte est désactivé.")
+
+        data["utilisateur"] = utilisateur
+        return data
+
+
+class TokenObtainPairSerializer(serializers.Serializer):
+    """Serializer pour login via email + password (compatible frontend)"""
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, data):
+        email = data.get("email")
+        password = data.get("password")
+
+        # Chercher l'utilisateur par email
+        try:
+            utilisateur = CustomUser.objects.get(email__iexact=email)
+        except CustomUser.DoesNotExist:
+            raise serializers.ValidationError("Email ou mot de passe incorrect.")
+
+        # Vérifier le mot de passe
+        if not utilisateur.check_password(password):
+            raise serializers.ValidationError("Email ou mot de passe incorrect.")
 
         if not utilisateur.is_active:
             raise serializers.ValidationError("Ce compte est désactivé.")

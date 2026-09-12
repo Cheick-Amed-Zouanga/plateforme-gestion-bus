@@ -45,16 +45,17 @@ class CompanyFilterMixin:
 
 class BusViewSet(CompanyFilterMixin, viewsets.ModelViewSet):
     """CRUD pour les Bus avec multi-tenant"""
+    queryset = Bus.objects.all()
     serializer_class = BusSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['actif', 'type_bus']
     search_fields = ['immatriculation']
-    ordering_fields = ['created_at', 'immatriculation']
-    ordering = ['-created_at']
+    ordering_fields = ['immatriculation', 'capacite']
+    ordering = ['immatriculation']
 
     def get_queryset(self):
-        return super().get_queryset().all()
+        return super().get_queryset()
 
     def create(self, request, *args, **kwargs):
         """Créer un bus - multi-tenant"""
@@ -114,6 +115,7 @@ class BusViewSet(CompanyFilterMixin, viewsets.ModelViewSet):
 
 class LigneViewSet(CompanyFilterMixin, viewsets.ModelViewSet):
     """CRUD pour les Lignes avec multi-tenant"""
+    queryset = Ligne.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['active']
@@ -122,7 +124,7 @@ class LigneViewSet(CompanyFilterMixin, viewsets.ModelViewSet):
     ordering = ['-date_creation']
 
     def get_queryset(self):
-        return super().get_queryset().all()
+        return super().get_queryset()
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -190,6 +192,7 @@ class LigneViewSet(CompanyFilterMixin, viewsets.ModelViewSet):
 
 class TrajetViewSet(CompanyFilterMixin, viewsets.ModelViewSet):
     """CRUD pour les Trajets avec multi-tenant"""
+    queryset = Trajet.objects.all()
     serializer_class = TrajetSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -199,7 +202,7 @@ class TrajetViewSet(CompanyFilterMixin, viewsets.ModelViewSet):
     ordering = ['-depart_prevu']
 
     def get_queryset(self):
-        return super().get_queryset().all()
+        return super().get_queryset()
 
     def create(self, request, *args, **kwargs):
         """Créer un trajet - multi-tenant"""
@@ -259,6 +262,7 @@ class TrajetViewSet(CompanyFilterMixin, viewsets.ModelViewSet):
 
 class TarifViewSet(CompanyFilterMixin, viewsets.ModelViewSet):
     """CRUD pour les Tarifs avec multi-tenant"""
+    queryset = Tarif.objects.all()
     serializer_class = TarifSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -268,7 +272,7 @@ class TarifViewSet(CompanyFilterMixin, viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        return super().get_queryset().all()
+        return super().get_queryset()
 
     def create(self, request, *args, **kwargs):
         """Créer un tarif - multi-tenant"""
