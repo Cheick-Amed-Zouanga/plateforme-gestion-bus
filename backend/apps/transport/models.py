@@ -1,8 +1,11 @@
 from django.db import models
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from apps.iam.models import Company
 
 
+# ⚠️ DEPRECATED: CompagnieTransport - Utiliser Company (iam.models) à la place
+# Conservé pour la migration de données
 class CompagnieTransport(models.Model):
     nom         = models.CharField(max_length=150, unique=True)
     description = models.TextField(blank=True)
@@ -20,7 +23,7 @@ class Bus(models.Model):
         STANDARD = 'STANDARD', 'Standard'
         VIP      = 'VIP',      'VIP'
 
-    compagnie       = models.ForeignKey('transport.CompagnieTransport', on_delete=models.CASCADE, related_name='bus')
+    company         = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='bus', null=True, blank=True)
     immatriculation = models.CharField(max_length=50, unique=True)
     type_bus        = models.CharField(max_length=20, choices=TypeBus.choices, default=TypeBus.STANDARD)
     capacite        = models.PositiveIntegerField(default=0)
@@ -50,7 +53,7 @@ class Siege(models.Model):
 
 
 class Ligne(models.Model):
-    compagnie     = models.ForeignKey('transport.CompagnieTransport', on_delete=models.CASCADE, related_name='lignes')
+    company       = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='lignes', null=True, blank=True)
     nom           = models.CharField(max_length=100)
     code          = models.CharField(max_length=20, unique=True)
     description   = models.TextField(blank=True)
@@ -127,7 +130,7 @@ class Trajet(models.Model):
         TERMINE  = 'TERMINE',  'Terminé'
         ANNULE   = 'ANNULE',   'Annulé'
 
-    compagnie      = models.ForeignKey('transport.CompagnieTransport', on_delete=models.PROTECT,  related_name='trajets')
+    company        = models.ForeignKey(Company,                         on_delete=models.PROTECT,  related_name='trajets', null=True, blank=True)
     ligne          = models.ForeignKey('transport.Ligne',              on_delete=models.PROTECT,  related_name='trajets')
     bus            = models.ForeignKey('transport.Bus',                on_delete=models.PROTECT,  related_name='trajets')
     controleur     = models.ForeignKey('accounts.ProfilEmploye',       on_delete=models.SET_NULL, related_name='trajets_assignes', null=True, blank=True)
@@ -144,7 +147,7 @@ class Trajet(models.Model):
 
 
 class Tarif(models.Model):
-    compagnie     = models.ForeignKey('transport.CompagnieTransport', on_delete=models.CASCADE, related_name='tarifs')
+    company       = models.ForeignKey(Company,                         on_delete=models.CASCADE, related_name='tarifs', null=True, blank=True)
     ligne         = models.ForeignKey('transport.Ligne',              on_delete=models.CASCADE, related_name='tarifs')
     arret_depart  = models.ForeignKey('transport.ArretLigne',         on_delete=models.CASCADE, related_name='tarifs_depart')
     arret_arrivee = models.ForeignKey('transport.ArretLigne',         on_delete=models.CASCADE, related_name='tarifs_arrivee')
@@ -157,7 +160,7 @@ class Tarif(models.Model):
         verbose_name_plural = 'Tarifs'
         constraints = [
             models.UniqueConstraint(
-                fields=['compagnie', 'ligne', 'arret_depart', 'arret_arrivee', 'type_bus'],
+                fields=['ligne', 'arret_depart', 'arret_arrivee', 'type_bus'],
                 name='uniq_tarif_segment',
             ),
         ]

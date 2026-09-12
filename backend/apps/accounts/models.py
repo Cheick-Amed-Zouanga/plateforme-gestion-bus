@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from apps.iam.models import Company
 
 # Create your models here.
 
@@ -59,13 +60,13 @@ class ProfilEmploye(models.Model):
         on_delete=models.CASCADE,
         related_name='profil_employe',
     )
-    compagnie = models.ForeignKey(
-        'transport.CompagnieTransport',
+    company = models.ForeignKey(
+        Company,
         on_delete=models.PROTECT,
         related_name='employes',
         null=True,
         blank=True,
-        help_text="Optionnel pour l'admin plateforme.",
+        help_text="Optionnel pour le Super Admin plateforme.",
     )
     role = models.CharField(max_length=20, choices=Role.choices)
     telephone = models.CharField(max_length=30, blank=True)
