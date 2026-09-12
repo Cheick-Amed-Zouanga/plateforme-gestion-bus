@@ -3,15 +3,23 @@ import { useNavigate } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Mail, Lock, Loader2, AlertCircle, Bus } from 'lucide-react'
+import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react'
 
-export default function LoginPage() {
+interface LoginCredentials {
+  email: string
+  password: string
+}
+
+export function LoginPage() {
   const navigate = useNavigate()
-  const [credentials, setCredentials] = useState({ email: '', password: '' })
+  const [credentials, setCredentials] = useState<LoginCredentials>({
+    email: '',
+    password: '',
+  })
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
@@ -19,7 +27,9 @@ export default function LoginPage() {
     try {
       const response = await fetch('http://localhost:8000/api/token/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           email: credentials.email,
           password: credentials.password,
@@ -31,19 +41,17 @@ export default function LoginPage() {
       }
 
       const data = await response.json()
+
+      // Sauvegarder les tokens
       localStorage.setItem('access_token', data.access)
       localStorage.setItem('refresh_token', data.refresh)
       localStorage.setItem('user', JSON.stringify(data.user))
       localStorage.setItem('company', JSON.stringify(data.company))
       localStorage.setItem('is_super_admin', JSON.stringify(data.is_super_admin))
 
-      // Redirection selon le profil
-      if (data.is_super_admin) {
-        navigate('/dashboard')
-      } else {
-        navigate('/dashboard')
-      }
-    } catch (err) {
+      // Rediriger vers le dashboard
+      navigate('/dashboard')
+    } catch (err: any) {
       setError(err.message || 'Erreur de connexion')
     } finally {
       setLoading(false)
@@ -51,19 +59,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo & Header */}
         <div className="text-center mb-8">
-          <div className="inline-block bg-gradient-to-br from-blue-600 to-blue-700 p-3 rounded-lg mb-4 shadow-lg">
-            <Bus className="w-8 h-8 text-white" />
+          <div className="inline-block bg-slate-700 p-3 rounded-lg mb-4">
+            <div className="text-white text-2xl font-bold">🚌</div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Transport Manager</h1>
-          <p className="text-slate-400">Plateforme multi-tenant</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Transport Manager</h1>
+          <p className="text-slate-400">Plateforme de gestion du transport</p>
         </div>
 
         {/* Login Card */}
-        <Card className="bg-white shadow-2xl border-0">
+        <Card className="bg-white shadow-2xl">
           <div className="p-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Connexion</h2>
 
@@ -77,7 +85,7 @@ export default function LoginPage() {
 
             {/* Login Form */}
             <form onSubmit={handleLogin} className="space-y-4">
-              {/* Email Input */}
+              {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Email
@@ -91,13 +99,13 @@ export default function LoginPage() {
                     onChange={(e) =>
                       setCredentials({ ...credentials, email: e.target.value })
                     }
-                    className="pl-10 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="pl-10 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
               </div>
 
-              {/* Password Input */}
+              {/* Password */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Mot de passe
@@ -111,7 +119,7 @@ export default function LoginPage() {
                     onChange={(e) =>
                       setCredentials({ ...credentials, password: e.target.value })
                     }
-                    className="pl-10 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="pl-10 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -121,7 +129,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white py-2.5 rounded-lg font-medium transition flex items-center justify-center gap-2 mt-6"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition flex items-center justify-center gap-2"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {loading ? 'Connexion...' : 'Se connecter'}
@@ -130,19 +138,19 @@ export default function LoginPage() {
 
             {/* Demo Credentials */}
             <div className="mt-8 pt-6 border-t border-slate-200">
-              <p className="text-sm font-semibold text-slate-900 mb-3">Identifiants de test:</p>
-              <div className="space-y-2">
-                <div className="p-3 bg-blue-50 rounded border border-blue-200 text-xs">
+              <p className="text-sm font-medium text-slate-700 mb-3">Identifiants de test:</p>
+              <div className="space-y-2 text-xs text-slate-600">
+                <div className="p-2 bg-slate-50 rounded">
                   <p className="font-medium">👑 Super Admin</p>
-                  <p className="text-slate-600">superadmin@platform.com / superadmin@2024</p>
+                  <p>superadmin@platform.com / superadmin@2024</p>
                 </div>
-                <div className="p-3 bg-green-50 rounded border border-green-200 text-xs">
+                <div className="p-2 bg-slate-50 rounded">
                   <p className="font-medium">🏢 Dakar Transport</p>
-                  <p className="text-slate-600">admin@dakar-transport.com / admin@2024</p>
+                  <p>admin@dakar-transport.com / admin@2024</p>
                 </div>
-                <div className="p-3 bg-purple-50 rounded border border-purple-200 text-xs">
+                <div className="p-2 bg-slate-50 rounded">
                   <p className="font-medium">🏢 Senegal Express</p>
-                  <p className="text-slate-600">admin@senegal-express.com / admin@2024</p>
+                  <p>admin@senegal-express.com / admin@2024</p>
                 </div>
               </div>
             </div>
@@ -150,7 +158,7 @@ export default function LoginPage() {
         </Card>
 
         {/* Footer */}
-        <p className="text-center text-slate-400 text-xs mt-6">
+        <p className="text-center text-slate-400 text-sm mt-6">
           © 2024 Transport Manager. Tous droits réservés.
         </p>
       </div>
