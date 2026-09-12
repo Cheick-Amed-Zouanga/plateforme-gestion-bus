@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python -c ' *)",
-      "Bash(mkdir -p \"c:/Users/Utilisateur/Downloads/projet/plateforme-gestion-bus/web/app_web/src/features/controleur/pages\")"
+      "Bash(mkdir -p \"c:/Users/Utilisateur/Downloads/projet/plateforme-gestion-bus/web/app_web/src/features/controleur/pages\")",
+      "Bash(grep -E \"\\\\.py$|manage\")",
+      "PowerShell(if \\(-not \\(Test-Path \"C:\\\\Users\\\\DarkSide\\\\Desktop\\\\projet git\\\\plateforme-gestion-bus\\\\web\\\\app_web\\\\src\\\\features\\\\rh\\\\pages\"\\)\\) { New-Item -ItemType Directory -Force \"C:\\\\Users\\\\DarkSide\\\\Desktop\\\\projet git\\\\plateforme-gestion-bus\\\\web\\\\app_web\\\\src\\\\features\\\\rh\\\\pages\" })",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: amélioration CRUD complet pour EmployeesPage et Support/TicketsPage *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Utilisateur\\Downloads\\projet\\plateforme-gestion-bus\\web\\app_web\\src\\features\\controleur"

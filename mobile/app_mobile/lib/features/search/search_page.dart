@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/network/api_client.dart';
 import '../../core/services/client_service.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../shared/components/index.dart';
 import 'trajet_detail_page.dart';
 
 class SearchPage extends StatefulWidget {
@@ -39,91 +41,32 @@ class _SearchPageState extends State<SearchPage> {
     try {
       final villes = await ClientService.instance.fetchVilles();
       if (mounted) setState(() => _villes = villes);
-    } catch (_) {}
-  }
-
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date ?? now,
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 90)),
-    );
-    if (picked != null) setState(() => _date = picked);
-  }
-
-  Future<String?> _pickVille(String title, TextEditingController ctrl) async {
-    if (_villes.isEmpty) return null;
-    return showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) {
-        final filter = TextEditingController();
-        var filtered = List<String>.from(_villes);
-        return StatefulBuilder(
-          builder: (ctx, setModal) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(ctx).viewInsets.bottom,
-              ),
-              child: SizedBox(
-                height: MediaQuery.of(ctx).size.height * 0.6,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: TextField(
-                        controller: filter,
-                        decoration: InputDecoration(
-                          labelText: title,
-                          prefixIcon: const Icon(Icons.search),
-                        ),
-                        onChanged: (v) {
-                          setModal(() {
-                            filtered = _villes
-                                .where((e) => e.toLowerCase().contains(v.toLowerCase()))
-                                .toList();
-                          });
-                        },
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: filtered.length,
-                        itemBuilder: (_, i) => ListTile(
-                          title: Text(filtered[i]),
-                          onTap: () {
-                            ctrl.text = filtered[i];
-                            Navigator.pop(ctx, filtered[i]);
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
+    } catch (_) {
+      // Erreur au chargement des villes
+    }
   }
 
   Future<void> _search() async {
     final depart = _departCtrl.text.trim();
     final arrivee = _arriveeCtrl.text.trim();
+
     if (depart.isEmpty || arrivee.isEmpty) {
-      setState(() => _error = 'Indiquez départ et arrivée.');
+      AppWarningSnackbar.show(
+        context,
+        message: 'Veuillez indiquer la ville de départ et d\'arrivée',
+      );
       return;
     }
+
     setState(() {
       _loading = true;
       _error = null;
       _searched = true;
     });
+
     try {
-      final dateStr = _date != null ? DateFormat('yyyy-MM-dd').format(_date!) : null;
+      final dateStr =
+          _date != null ? DateFormat('yyyy-MM-dd').format(_date!) : null;
       final list = await ClientService.instance.searchTrajets(
         depart: depart,
         arrivee: arrivee,
@@ -136,194 +79,249 @@ class _SearchPageState extends State<SearchPage> {
         _error = e.message;
         _trajets = [];
       });
-    } catch (_) {
+      if (mounted) {
+        AppErrorSnackbar.show(context, message: _error!);
+      }
+    } catch (e) {
       setState(() {
-        _error = 'Impossible de joindre le serveur.';
+        _error = 'Impossible de joindre le serveur. Vérifiez votre connexion.';
         _trajets = [];
       });
+      if (mounted) {
+        AppErrorSnackbar.show(context, message: _error!);
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  void _clearDate() => setState(() => _date = null);
+
+  void _selectTrip(Map<String, dynamic> trajet) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TrajetDetailPage(
+          trajetSummary: trajet,
+          villeDepart: _departCtrl.text.trim(),
+          villeArrivee: _arriveeCtrl.text.trim(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final dateLabel = _date == null
-        ? 'Toutes dates'
-        : DateFormat('dd/MM/yyyy').format(_date!);
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
       children: [
-        const Text(
-          'Rechercher un trajet',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: AppColors.headerDark,
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _departCtrl,
-          readOnly: _villes.isNotEmpty,
-          onTap: _villes.isEmpty ? null : () => _pickVille('Ville de départ', _departCtrl),
-          decoration: const InputDecoration(
-            labelText: 'Départ',
-            prefixIcon: Icon(Icons.trip_origin),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: _arriveeCtrl,
-          readOnly: _villes.isNotEmpty,
-          onTap: _villes.isEmpty ? null : () => _pickVille('Ville d\'arrivée', _arriveeCtrl),
-          decoration: const InputDecoration(
-            labelText: 'Arrivée',
-            prefixIcon: Icon(Icons.location_on_outlined),
-          ),
-        ),
-        const SizedBox(height: 12),
-        InkWell(
-          onTap: _pickDate,
-          child: InputDecorator(
-            decoration: const InputDecoration(
-              labelText: 'Date',
-              prefixIcon: Icon(Icons.calendar_today_outlined),
-            ),
-            child: Text(dateLabel),
-          ),
-        ),
-        if (_date != null)
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () => setState(() => _date = null),
-              child: const Text('Effacer la date'),
-            ),
-          ),
-        const SizedBox(height: 8),
-        ElevatedButton(
-          onPressed: _loading ? null : _search,
-          child: _loading
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : const Text('Rechercher'),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          Text(_error!, style: const TextStyle(color: AppColors.errorRed)),
-        ],
-        const SizedBox(height: 20),
-        if (_searched && !_loading && _trajets.isEmpty && _error == null)
-          const Text(
-            'Aucun trajet trouvé pour ces critères.',
-            style: TextStyle(color: AppColors.textGrey),
-          ),
-        ..._trajets.map((t) => _TrajetCard(
-              trajet: t,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => TrajetDetailPage(
-                      trajetSummary: t,
-                      villeDepart: _departCtrl.text.trim(),
-                      villeArrivee: _arriveeCtrl.text.trim(),
-                    ),
+        // Search Form Card
+        Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                children: [
+                  // Departure City Picker
+                  CityPickerField(
+                    label: 'Ville de départ',
+                    value: _departCtrl.text.isEmpty ? null : _departCtrl.text,
+                    cities: _villes,
+                    onCitySelected: (city) {
+                      setState(() => _departCtrl.text = city);
+                    },
                   ),
-                );
-              },
-            )),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Arrival City Picker
+                  CityPickerField(
+                    label: 'Ville d\'arrivée',
+                    value: _arriveeCtrl.text.isEmpty ? null : _arriveeCtrl.text,
+                    cities: _villes,
+                    onCitySelected: (city) {
+                      setState(() => _arriveeCtrl.text = city);
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Date Picker
+                  DatePickerField(
+                    label: 'Date de départ',
+                    value: _date,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 90)),
+                    onDateSelected: (date) {
+                      setState(() => _date = date);
+                    },
+                  ),
+                  if (_date != null) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _clearDate,
+                        child: const Text(
+                          'Effacer la date',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Search Button
+                  PrimaryButton(
+                    label: 'Rechercher les trajets',
+                    isLoading: _loading,
+                    onPressed: _search,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Results Section
+        Expanded(
+          child: _buildResultsSection(),
+        ),
       ],
+    );
+  }
+
+  Widget _buildResultsSection() {
+    // Loading state
+    if (_loading && _searched) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: TripSkeleton(count: 3),
+      );
+    }
+
+    // Error state
+    if (_error != null) {
+      return AppErrorWidget(
+        message: _error!,
+        title: 'Erreur de recherche',
+        onRetry: _search,
+      );
+    }
+
+    // No search performed yet
+    if (!_searched) {
+      return const SizedBox.expand(
+        child: Center(
+          child: Text(
+            'Utilisez le formulaire ci-dessus\npour rechercher des trajets',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textGrey,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // No results
+    if (_trajets.isEmpty) {
+      return NoResultsEmpty(
+        onRetry: _search,
+      );
+    }
+
+    // Results list
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.lg,
+      ),
+      itemCount: _trajets.length,
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.lg),
+      itemBuilder: (_, index) {
+        final trajet = _trajets[index];
+        return _TripCardWidget(
+          trajet: trajet,
+          onTap: () => _selectTrip(trajet),
+        );
+      },
     );
   }
 }
 
-class _TrajetCard extends StatelessWidget {
+/// Custom TripCard widget to match the API structure
+class _TripCardWidget extends StatelessWidget {
   final Map<String, dynamic> trajet;
   final VoidCallback onTap;
 
-  const _TrajetCard({required this.trajet, required this.onTap});
+  const _TripCardWidget({
+    required this.trajet,
+    required this.onTap,
+  });
+
+  String _getTrajetDuration() {
+    try {
+      final depart =
+          DateTime.tryParse(trajet['depart_prevu']?.toString() ?? '');
+      final arrivee =
+          DateTime.tryParse(trajet['arrivee_prevue']?.toString() ?? '');
+
+      if (depart == null || arrivee == null) return '—';
+
+      final duration = arrivee.difference(depart);
+      final hours = duration.inHours;
+      final minutes = duration.inMinutes % 60;
+
+      if (hours == 0) return '${minutes}min';
+      return '${hours}h ${minutes}min';
+    } catch (_) {
+      return '—';
+    }
+  }
+
+  String _getDepartureTime() {
+    try {
+      final depart =
+          DateTime.tryParse(trajet['depart_prevu']?.toString() ?? '');
+      if (depart == null) return '—';
+      return DateFormat('HH:mm').format(depart.toLocal());
+    } catch (_) {
+      return '—';
+    }
+  }
+
+  String _getArrivalTime() {
+    try {
+      final arrivee =
+          DateTime.tryParse(trajet['arrivee_prevue']?.toString() ?? '');
+      if (arrivee == null) return '—';
+      return DateFormat('HH:mm').format(arrivee.toLocal());
+    } catch (_) {
+      return '—';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final depart = DateTime.tryParse(trajet['depart_prevu']?.toString() ?? '');
-    final heure = depart != null ? DateFormat('HH:mm').format(depart.toLocal()) : '—';
-    final date = depart != null ? DateFormat('dd/MM').format(depart.toLocal()) : '';
-    final prix = trajet['prix'] ?? 0;
-    final places = trajet['places_disponibles'] ?? 0;
+    final price = (trajet['prix'] ?? 0).toString();
+    final places = (trajet['places_disponibles'] ?? 0) as int;
+    final badgeLabel = places > 0 ? 'Disponible' : 'Complet';
+    final badgeColor =
+        places > 0 ? AppColors.success.withValues(alpha: 0.1) : AppColors.errorRed.withValues(alpha: 0.1);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      trajet['compagnie']?.toString() ?? '',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: AppColors.primaryBlue,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.backgroundGrey,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      trajet['type_bus']?.toString() ?? '',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${trajet['ville_depart']} → ${trajet['ville_arrivee']}',
-                style: const TextStyle(fontSize: 15),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.schedule, size: 16, color: Colors.grey.shade600),
-                  const SizedBox(width: 4),
-                  Text('$date · $heure'),
-                  const Spacer(),
-                  Text(
-                    '$prix XOF',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.headerDark,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '$places place(s) disponible(s)',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: places > 0 ? Colors.green.shade700 : AppColors.errorRed,
-                ),
-              ),
-            ],
-          ),
-        ),
+    return GestureDetector(
+      onTap: onTap,
+      child: TripCard(
+        departure: trajet['ville_depart'] ?? '—',
+        departureTime: _getDepartureTime(),
+        arrival: trajet['ville_arrivee'] ?? '—',
+        arrivalTime: _getArrivalTime(),
+        duration: _getTrajetDuration(),
+        price: '$price CFA',
+        busCompany: trajet['compagnie'] ?? 'Bus',
+        badgeLabel: badgeLabel,
+        badgeColor: badgeColor,
+        isBooked: false,
       ),
     );
   }

@@ -1,0 +1,109 @@
+from rest_framework import serializers
+from .models import Company, Gare, Permission, Role, CustomUser, AuditLog
+
+
+class CompanySerializer(serializers.ModelSerializer):
+    """Sérializer pour Company"""
+
+    class Meta:
+        model = Company
+        fields = ('id', 'name', 'email', 'phone', 'address', 'slug', 'logo',
+                  'subscription', 'is_active', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class GareSerializer(serializers.ModelSerializer):
+    """Sérializer pour Gare"""
+    company_name = serializers.CharField(source='company.name', read_only=True)
+
+    class Meta:
+        model = Gare
+        fields = ('id', 'company', 'company_name', 'name', 'city', 'address',
+                  'phone', 'email', 'manager_name', 'coordinates', 'is_active',
+                  'created_at', 'updated_at')
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class PermissionSerializer(serializers.ModelSerializer):
+    """Sérializer pour Permission"""
+
+    class Meta:
+        model = Permission
+        fields = ('id', 'resource', 'action', 'name', 'description', 'created_at')
+        read_only_fields = ('id', 'created_at')
+
+
+class RoleSerializer(serializers.ModelSerializer):
+    """Sérializer pour Role"""
+    permissions = PermissionSerializer(many=True, read_only=True)
+    permission_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Permission.objects.all(),
+        write_only=True,
+        many=True,
+        required=False,
+        source='permissions'
+    )
+    company_name = serializers.CharField(source='company.name', read_only=True)
+
+    class Meta:
+        model = Role
+        fields = ('id', 'company', 'company_name', 'name', 'description',
+                  'permissions', 'permission_ids', 'is_active', 'created_at',
+                  'updated_at')
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class CustomUserSerializer(serializers.ModelSerializer):
+    """Sérializer pour CustomUser"""
+    roles = RoleSerializer(many=True, read_only=True)
+    role_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Role.objects.all(),
+        write_only=True,
+        many=True,
+        required=False,
+        source='roles'
+    )
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    gare_name = serializers.CharField(source='gare.name', read_only=True)
+    permissions = PermissionSerializer(source='get_permissions', many=True, read_only=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ('id', 'email', 'username', 'first_name', 'last_name',
+                  'company', 'company_name', 'gare', 'gare_name',
+                  'roles', 'role_ids', 'permissions',
+                  'is_active', 'is_staff', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'created_at', 'updated_at', 'permissions')
+
+    def create(self, validated_data):
+        """Créer un utilisateur avec password"""
+        password = validated_data.pop('password', None)
+        user = CustomUser.objects.create_user(**validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        """Mettre à jour un utilisateur"""
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    """Sérializer pour AuditLog"""
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    company_name = serializers.CharField(source='company.name', read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = ('id', 'user', 'user_email', 'company', 'company_name',
+                  'action', 'resource_type', 'resource_id', 'resource_name',
+                  'old_values', 'new_values', 'description', 'ip_address',
+                  'created_at')
+        read_only_fields = ('id', 'created_at', 'user', 'company', 'ip_address')
