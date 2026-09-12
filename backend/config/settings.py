@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'apps.accounts',
+    'apps.iam',
     'apps.transport',
     'apps.reservation_billets',
     'apps.paiements',
@@ -94,6 +95,10 @@ LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'America/Montreal'
 USE_I18N = True
 USE_TZ = True
+
+
+# --- Custom User Model ---
+AUTH_USER_MODEL = 'iam.CustomUser'
 
 
 # --- Fichiers statiques ---

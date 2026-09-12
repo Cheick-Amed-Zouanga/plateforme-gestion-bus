@@ -16,15 +16,16 @@ from .managers import TenantManager
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """Custom JWT serializer que include tenant_id"""
+    """Custom JWT serializer que include tenant_id - Multi-tenant support"""
 
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Ajouter tenant_id au token
-        token['tenant_id'] = str(user.company_id)
-        token['company_name'] = user.company.name
+        # Ajouter tenant_id au token (NULL pour Super Admin Central)
+        token['tenant_id'] = str(user.company_id) if user.company_id else None
+        token['company_name'] = user.company.name if user.company else 'Platform Admin'
         token['user_email'] = user.email
+        token['is_super_admin'] = user.is_superuser and user.company_id is None
         token['user_role'] = ', '.join([r.name for r in user.roles.all()])
         return token
 
@@ -32,7 +33,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         user = self.user
         data['user'] = CustomUserSerializer(user).data
-        data['company'] = CompanySerializer(user.company).data
+        # Seulement ajouter company si l'utilisateur en a une
+        data['company'] = CompanySerializer(user.company).data if user.company else None
+        data['is_super_admin'] = user.is_superuser and user.company_id is None
         return data
 
 
@@ -52,17 +55,27 @@ class CurrentUserView(viewsets.ViewSet):
         return Response(serializer.data)
 
     def list(self, request):
-        """GET /api/users/me/"""
+        """GET /api/users/me/ - Multi-tenant aware"""
         user = request.user
         serializer = CustomUserSerializer(user)
-        return Response({
-            'user': serializer.data,
-            'company': CompanySerializer(user.company).data,
-            'permissions': [p.name for p in user.get_permissions()],
-            'accessible_gares': GareSerializer(
+
+        # Super Admin Central n'a pas de company et d'accessible gares
+        if user.company_id is None:
+            accessible_gares = []
+            company_data = None
+        else:
+            accessible_gares = GareSerializer(
                 user.get_accessible_gares(),
                 many=True
-            ).data,
+            ).data
+            company_data = CompanySerializer(user.company).data
+
+        return Response({
+            'user': serializer.data,
+            'company': company_data,
+            'is_super_admin': user.is_superuser and user.company_id is None,
+            'permissions': [p.name for p in user.get_permissions()],
+            'accessible_gares': accessible_gares,
         })
 
 
@@ -77,14 +90,19 @@ class UserViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        """Retourner les users de la company de l'utilisateur courant"""
+        """Retourner les users - Super Admin voit tout, autres voient que leur company"""
         user = self.request.user
-        if user.is_superuser:
+        # Super Admin Central (is_superuser + company_id=NULL) peut voir TOUS les users
+        if user.is_superuser and user.company_id is None:
             return CustomUser.objects.all()
-        return CustomUser.objects.filter(company=user.company)
+        # Utilisateurs avec company ne voient que leur company
+        if user.company_id is not None:
+            return CustomUser.objects.filter(company=user.company)
+        # Utilisateurs sans company et sans superuser: accès refusé
+        return CustomUser.objects.none()
 
     def create(self, request, *args, **kwargs):
-        """Créer un user dans la company de l'utilisateur courant"""
+        """Créer un user - Super Admin peut créer pour n'importe quelle company"""
         # Vérifier la permission
         if not request.user.has_permission('iam.create'):
             return Response(
@@ -92,18 +110,44 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Forcer la company_id
         data = request.data.copy()
-        data['company'] = str(request.user.company_id)
+
+        # Super Admin Central peut spécifier la company_id
+        if request.user.is_superuser and request.user.company_id is None:
+            # Super Admin - company_id peut être spécifié ou NULL
+            if 'company' not in data:
+                return Response(
+                    {'detail': 'Super Admin must specify company'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            # Utilisateurs réguliers: forcer leur company
+            if request.user.company_id is None:
+                return Response(
+                    {'detail': 'User must have a company assigned'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            data['company'] = str(request.user.company_id)
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
 
-        # Log l'action
+        # Log l'action (Audit log doit aussi avoir une company)
+        audit_company = serializer.instance.company
+        if audit_company is None and request.user.is_superuser:
+            # Super Admin logging - pas de company
+            pass
+        elif audit_company is None:
+            # Erreur: utilisateur sans company ne devrait pas créer
+            return Response(
+                {'detail': 'Invalid state'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         AuditLog.objects.create(
             user=request.user,
-            company=request.user.company,
+            company=audit_company or request.user.company,
             action='create',
             resource_type='User',
             resource_id=serializer.instance.id,

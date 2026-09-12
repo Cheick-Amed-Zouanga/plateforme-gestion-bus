@@ -49,17 +49,34 @@ class TenantMiddleware(MiddlewareMixin):
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         """
-        S'il y a un user authentifié, vérifier qu'il accède à sa propre company
+        S'il y a un user authentifié, vérifier qu'il accède à sa propre company.
+        EXCEPTION: Super Admin Central (company=NULL) peut accéder à toutes les compagnies.
         """
         if hasattr(request, 'user') and request.user.is_authenticated:
-            if request.tenant_id and str(request.user.company_id) != str(request.tenant_id):
-                # L'utilisateur essaie d'accéder à une autre company
-                from rest_framework.response import Response
-                from rest_framework import status
+            # Super Admin Central (company=NULL) peut tout faire
+            if request.user.company_id is None and request.user.is_superuser:
+                return None
 
-                return Response(
-                    {'detail': 'Accès refusé - Tenant mismatch'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+            # Utilisateurs réguliers doivent accéder UNIQUEMENT à leur company
+            if request.tenant_id:
+                if request.user.company_id is None:
+                    # Utilisateur sans company ne peut pas accéder à des données
+                    from rest_framework.response import Response
+                    from rest_framework import status
+
+                    return Response(
+                        {'detail': 'Accès refusé - Pas de compagnie assignée'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+                if str(request.user.company_id) != str(request.tenant_id):
+                    # L'utilisateur essaie d'accéder à une autre company
+                    from rest_framework.response import Response
+                    from rest_framework import status
+
+                    return Response(
+                        {'detail': 'Accès refusé - Tenant mismatch'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
 
         return None

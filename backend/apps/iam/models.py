@@ -125,9 +125,18 @@ class Role(models.Model):
 
 
 class CustomUser(AbstractUser):
-    """Utilisateur avec company, gare et rôles"""
+    """Utilisateur avec company, gare et rôles - Multi-tenant support"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='users')
+    email = models.EmailField(unique=True)
+    # null=True pour Super Admin Central (admin@platform.com)
+    # Tous les autres users DOIVENT avoir une company
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='users',
+        null=True,
+        blank=True
+    )
     gare = models.ForeignKey(
         Gare,
         on_delete=models.SET_NULL,

@@ -54,7 +54,7 @@ class RoleSerializer(serializers.ModelSerializer):
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
-    """Sérializer pour CustomUser"""
+    """Sérializer pour CustomUser - Support multi-tenant"""
     roles = RoleSerializer(many=True, read_only=True)
     role_ids = serializers.PrimaryKeyRelatedField(
         queryset=Role.objects.all(),
@@ -63,9 +63,13 @@ class CustomUserSerializer(serializers.ModelSerializer):
         required=False,
         source='roles'
     )
-    company_name = serializers.CharField(source='company.name', read_only=True)
-    gare_name = serializers.CharField(source='gare.name', read_only=True)
+    company_name = serializers.SerializerMethodField()
+    gare_name = serializers.CharField(source='gare.name', read_only=True, allow_null=True)
     permissions = PermissionSerializer(source='get_permissions', many=True, read_only=True)
+
+    def get_company_name(self, obj):
+        """Retourner le nom de la compagnie ou None pour Super Admin Central"""
+        return obj.company.name if obj.company else None
 
     class Meta:
         model = CustomUser
