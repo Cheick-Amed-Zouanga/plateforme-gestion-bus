@@ -249,7 +249,11 @@ class RoleViewSet(viewsets.ModelViewSet):
         )
 
     def create(self, request, *args, **kwargs):
-        """Créer un role dans la company de l'utilisateur courant"""
+        """
+        Créer un rôle. Super Admin (company=None) : rôle global, ou pour une
+        compagnie précise s'il la spécifie. Utilisateur d'une compagnie : rôle
+        toujours rattaché à sa propre compagnie (non modifiable côté client).
+        """
         if not request.user.has_permission('iam.create'):
             return Response(
                 {'detail': 'Permission "iam.create" required'},
@@ -257,7 +261,10 @@ class RoleViewSet(viewsets.ModelViewSet):
             )
 
         data = request.data.copy()
-        data['company'] = str(request.user.company_id)
+        if not (request.user.is_superuser and request.user.company_id is None):
+            data['company'] = str(request.user.company_id)
+        elif not data.get('company'):
+            data['company'] = None
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)

@@ -6,6 +6,12 @@ import RequireIamAuth from "../components/RequireIamAuth";
 
 import LoginPage from "../features/accounts/pages/LoginPage";
 import DashboardHome from "../pages/DashboardHome";
+import UsersPage from "../pages/dashboard/UsersPage";
+import RolesPage from "../pages/dashboard/RolesPage";
+import PermissionsPage from "../pages/dashboard/PermissionsPage";
+import AuditLogPage from "../pages/dashboard/AuditLogPage";
+import CompaniesPage from "../pages/dashboard/CompaniesPage";
+import ComingSoonPage from "../pages/dashboard/ComingSoonPage";
 import AdminLayout from "../features/accounts/layouts/AdminLayout";
 import AdminHomePage from "../features/accounts/pages/AdminHomePage";
 import ChefLayout from "../features/chef/layouts/ChefLayout";
@@ -83,6 +89,21 @@ function Router() {
             </RequireIamAuth>
           }
         />
+        <Route path="/dashboard/iam/users"       element={<RequireIamAuth><UsersPage /></RequireIamAuth>} />
+        <Route path="/dashboard/iam/roles"        element={<RequireIamAuth><RolesPage /></RequireIamAuth>} />
+        <Route path="/dashboard/iam/permissions"  element={<RequireIamAuth><PermissionsPage /></RequireIamAuth>} />
+        <Route path="/dashboard/iam/audit-logs"   element={<RequireIamAuth><AuditLogPage /></RequireIamAuth>} />
+        <Route path="/dashboard/settings/company" element={<RequireIamAuth><CompaniesPage /></RequireIamAuth>} />
+
+        {/* ── Sections du dashboard pas encore construites (évite les pages blanches) ── */}
+        <Route path="/dashboard/transport/bus"     element={<RequireIamAuth><ComingSoonPage title="Bus" /></RequireIamAuth>} />
+        <Route path="/dashboard/transport/routes"  element={<RequireIamAuth><ComingSoonPage title="Routes" /></RequireIamAuth>} />
+        <Route path="/dashboard/transport/tickets" element={<RequireIamAuth><ComingSoonPage title="Billets" /></RequireIamAuth>} />
+        <Route path="/dashboard/rh/employees"      element={<RequireIamAuth><ComingSoonPage title="Employés" /></RequireIamAuth>} />
+        <Route path="/dashboard/rh/teams"          element={<RequireIamAuth><ComingSoonPage title="Équipes" /></RequireIamAuth>} />
+        <Route path="/dashboard/finances/payments"  element={<RequireIamAuth><ComingSoonPage title="Paiements" /></RequireIamAuth>} />
+        <Route path="/dashboard/finances/reports"   element={<RequireIamAuth><ComingSoonPage title="Rapports" /></RequireIamAuth>} />
+        <Route path="/dashboard/support/tickets"    element={<RequireIamAuth><ComingSoonPage title="Support Client" /></RequireIamAuth>} />
 
         <Route
           path="/admin"

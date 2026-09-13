@@ -1,4 +1,5 @@
 import uuid
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -252,13 +253,14 @@ class AuditLog(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='audit_logs')
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='audit_logs')
+    # null=True: actions globales du Super Admin Central (non rattachées à un tenant)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='audit_logs', null=True, blank=True)
     action = models.CharField(max_length=50, choices=ACTION_CHOICES)
     resource_type = models.CharField(max_length=100)  # e.g., "Bus", "Trajet"
     resource_id = models.CharField(max_length=255)
     resource_name = models.CharField(max_length=255, blank=True)
-    old_values = models.JSONField(null=True, blank=True)
-    new_values = models.JSONField(null=True, blank=True)
+    old_values = models.JSONField(null=True, blank=True, encoder=DjangoJSONEncoder)
+    new_values = models.JSONField(null=True, blank=True, encoder=DjangoJSONEncoder)
     description = models.TextField(blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
