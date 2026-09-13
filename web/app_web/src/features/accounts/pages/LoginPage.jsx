@@ -17,7 +17,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:8000/api/token/', {
+      const response = await fetch('http://localhost:8000/api/iam/auth/login/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -34,14 +34,24 @@ export default function LoginPage() {
       localStorage.setItem('access_token', data.access)
       localStorage.setItem('refresh_token', data.refresh)
       localStorage.setItem('user', JSON.stringify(data.user))
+      localStorage.setItem('username', data.user?.username || data.user?.email || '')
       localStorage.setItem('company', JSON.stringify(data.company))
       localStorage.setItem('is_super_admin', JSON.stringify(data.is_super_admin))
 
-      // Redirection selon le profil
+      // Redirection selon le rôle (legacy pages /chef, /sav, /controleur, ...
+      // restent en place ; le Super Admin Central atterrit sur le nouveau dashboard)
+      const ROUTE_BY_ROLE = {
+        CHEF_COMPAGNIE: '/chef',
+        SAV: '/sav',
+        CONTROLEUR: '/controleur',
+        COMPTABLE: '/comptable',
+        RECEPTIONNISTE: '/receptionniste',
+      }
+
       if (data.is_super_admin) {
         navigate('/dashboard')
       } else {
-        navigate('/dashboard')
+        navigate(ROUTE_BY_ROLE[data.role] || '/dashboard')
       }
     } catch (err) {
       setError(err.message || 'Erreur de connexion')

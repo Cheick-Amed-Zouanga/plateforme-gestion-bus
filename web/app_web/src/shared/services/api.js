@@ -1,24 +1,48 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
 
+function _authHeaders() {
+    const token = localStorage.getItem('access_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function _clearSessionAndRedirect() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('username');
+    localStorage.removeItem('company');
+    localStorage.removeItem('is_super_admin');
+    window.location.href = '/login';
+}
+
 async function apiFetch(url, options = {}) {
     const config = {
         ...options,
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...options.headers },
+        headers: { 'Content-Type': 'application/json', ..._authHeaders(), ...options.headers },
     };
 
     let res = await fetch(`${API_BASE_URL}${url}`, config);
 
     if (res.status === 401) {
-        const refreshRes = await fetch(`${API_BASE_URL}/accounts/token/refresh/`, {
-            method: 'POST',
-            credentials: 'include',
-        });
+        const refreshToken = localStorage.getItem('refresh_token');
+        const refreshRes = refreshToken
+            ? await fetch(`${API_BASE_URL}/iam/auth/refresh/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh: refreshToken }),
+            })
+            : null;
 
-        if (refreshRes.ok) {
-            res = await fetch(`${API_BASE_URL}${url}`, config);
+        if (refreshRes && refreshRes.ok) {
+            const { access } = await refreshRes.json();
+            localStorage.setItem('access_token', access);
+            res = await fetch(`${API_BASE_URL}${url}`, {
+                ...config,
+                headers: { ...config.headers, Authorization: `Bearer ${access}` },
+            });
         } else {
-            window.location.href = '/login';
+            _clearSessionAndRedirect();
             return;
         }
     }

@@ -27,9 +27,10 @@ interface DashboardStats {
 interface DashboardProps {
   userRole?: string
   userEmail?: string
+  onLogout?: () => void
 }
 
-export function Dashboard({ userRole = 'admin', userEmail = 'admin@company.com' }: DashboardProps) {
+export function Dashboard({ userRole = 'admin', userEmail = 'admin@company.com', onLogout }: DashboardProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -52,7 +53,7 @@ export function Dashboard({ userRole = 'admin', userEmail = 'admin@company.com' 
 
   if (loading || !stats) {
     return (
-      <AdminLayout userRole={userRole} userEmail={userEmail}>
+      <AdminLayout userRole={userRole} userEmail={userEmail} onLogout={onLogout}>
         <div className="flex items-center justify-center h-96">
           <div className="text-slate-500">Chargement du dashboard...</div>
         </div>

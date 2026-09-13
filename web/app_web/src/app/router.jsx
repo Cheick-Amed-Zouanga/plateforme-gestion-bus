@@ -2,8 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import SessionTimeout from "../components/SessionTimeOut";
 import ProtectedRoute from "../components/ProtectedRoute";
+import RequireIamAuth from "../components/RequireIamAuth";
 
 import LoginPage from "../features/accounts/pages/LoginPage";
+import DashboardHome from "../pages/DashboardHome";
 import AdminLayout from "../features/accounts/layouts/AdminLayout";
 import AdminHomePage from "../features/accounts/pages/AdminHomePage";
 import ChefLayout from "../features/chef/layouts/ChefLayout";
@@ -71,6 +73,16 @@ function Router() {
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
+
+        {/* ── Nouveau système multi-tenant (IAM / Super Admin Central) ── */}
+        <Route
+          path="/dashboard"
+          element={
+            <RequireIamAuth>
+              <DashboardHome />
+            </RequireIamAuth>
+          }
+        />
 
         <Route
           path="/admin"

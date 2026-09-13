@@ -8,11 +8,21 @@ export async function loginUser(credentials) {
 }
 
 export async function getConnectedProfile() {
-  return apiFetch("/accounts/me/");
+  // Nouveau système multi-tenant (IAM) : /iam/auth/me/ renvoie
+  // { user, company, is_super_admin, permissions, role } où `role` est déjà
+  // mappé vers les constantes legacy (ADMIN_PLATEFORME, CHEF_COMPAGNIE...)
+  // consommées par ProtectedRoute.
+  const data = await apiFetch("/iam/auth/me/");
+  return { ...data.user, role: data.role, company: data.company };
 }
 
 export async function logoutUser() {
-  return apiFetch("/accounts/deconnexion/", { method: "POST" });
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("username");
+  localStorage.removeItem("company");
+  localStorage.removeItem("is_super_admin");
 }
 
 export async function creerChefCompagnie(payload) {
