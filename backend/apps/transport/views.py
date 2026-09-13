@@ -28,16 +28,16 @@ def get_chef_compagnie(request):
         profil = request.user.profil_employe
     except ProfilEmploye.DoesNotExist:
         return None, None
-    if profil.role != ProfilEmploye.Role.CHEF_COMPAGNIE or profil.compagnie is None:
+    if profil.role != ProfilEmploye.Role.CHEF_COMPAGNIE or profil.company is None:
         return None, None
-    return profil, profil.compagnie
+    return profil, profil.company
 
 
 def _auto_annuler_trajets_vides(compagnie):
     """Annule les trajets dont l'heure de départ est passée et qui n'ont aucun billet."""
     from apps.reservation_billets.models import Billet
     trajets_depasses = Trajet.objects.filter(
-        compagnie=compagnie,
+        company=compagnie,
         statut__in=[Trajet.Statut.PLANIFIE, Trajet.Statut.EN_COURS],
         depart_prevu__lte=timezone.now(),
     )
@@ -60,7 +60,7 @@ def _acces_refuse():
 def _generer_code_ligne(compagnie):
     mots    = compagnie.nom.split()
     prefixe = ''.join(m[0].upper() for m in mots[:3])
-    n       = Ligne.objects.filter(compagnie=compagnie).count() + 1
+    n       = Ligne.objects.filter(company=compagnie).count() + 1
     code    = f"{prefixe}-{n:03d}"
     while Ligne.objects.filter(code=code).exists():
         n   += 1
@@ -73,7 +73,7 @@ def _get_ligne_chef(request, ligne_id):
     if not compagnie:
         return None, _acces_refuse()
     try:
-        ligne = Ligne.objects.prefetch_related('arrets').get(id=ligne_id, compagnie=compagnie)
+        ligne = Ligne.objects.prefetch_related('arrets').get(id=ligne_id, company=compagnie)
         return ligne, None
     except Ligne.DoesNotExist:
         return None, Response({'message': 'Ligne introuvable.'}, status=status.HTTP_404_NOT_FOUND)
@@ -88,7 +88,7 @@ class BusListCreateView(APIView):
         _, compagnie = get_chef_compagnie(request)
         if not compagnie:
             return _acces_refuse()
-        bus = Bus.objects.filter(compagnie=compagnie).order_by('immatriculation')
+        bus = Bus.objects.filter(company=compagnie).order_by('immatriculation')
         return Response(BusSerializer(bus, many=True).data)
 
     def post(self, request):
@@ -97,7 +97,7 @@ class BusListCreateView(APIView):
             return _acces_refuse()
         serializer = CreationBusSerializer(data=request.data)
         if serializer.is_valid():
-            bus = Bus.objects.create(compagnie=compagnie, **serializer.validated_data)
+            bus = Bus.objects.create(company=compagnie, **serializer.validated_data)
             Siege.objects.bulk_create(
                 [Siege(bus=bus, numero=str(i)) for i in range(1, bus.capacite + 1)]
             )
@@ -116,7 +116,7 @@ class BusDetailView(APIView):
         if not compagnie:
             return None, _acces_refuse()
         try:
-            return Bus.objects.get(id=bus_id, compagnie=compagnie), None
+            return Bus.objects.get(id=bus_id, company=compagnie), None
         except Bus.DoesNotExist:
             return None, Response({'message': 'Bus introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -213,7 +213,7 @@ class LigneListCreateView(APIView):
         _, compagnie = get_chef_compagnie(request)
         if not compagnie:
             return _acces_refuse()
-        lignes = Ligne.objects.filter(compagnie=compagnie).prefetch_related('arrets').order_by('-date_creation')
+        lignes = Ligne.objects.filter(company=compagnie).prefetch_related('arrets').order_by('-date_creation')
         return Response(LigneListSerializer(lignes, many=True).data)
 
     def post(self, request):
@@ -261,7 +261,7 @@ class LigneListCreateView(APIView):
         # Création de la ligne
         code  = _generer_code_ligne(compagnie)
         ligne = Ligne.objects.create(
-            compagnie=compagnie,
+            company=compagnie,
             code=code,
             nom=data['nom'],
             description=data.get('description', ''),
@@ -516,7 +516,7 @@ class TrajetListCreateView(APIView):
         _auto_annuler_trajets_vides(compagnie)
         trajets = (
             Trajet.objects
-            .filter(compagnie=compagnie)
+            .filter(company=compagnie)
             .select_related('ligne', 'bus', 'controleur__utilisateur')
             .order_by('-depart_prevu')
         )
@@ -529,17 +529,17 @@ class TrajetListCreateView(APIView):
         serializer = CreationTrajetSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data
-            if data['bus'].compagnie != compagnie:
+            if data['bus'].company != compagnie:
                 return Response(
                     {'message': "Ce bus n'appartient pas à votre compagnie."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             controleur = data.get('controleur')
-            if controleur and controleur.compagnie != compagnie:
+            if controleur and controleur.company != compagnie:
                 return Response({'message': "Ce contrôleur n'appartient pas à votre compagnie."},
                                 status=status.HTTP_400_BAD_REQUEST)
             trajet = Trajet.objects.create(
-                compagnie=compagnie,
+                company=compagnie,
                 ligne=data['ligne'],
                 bus=data['bus'],
                 controleur=controleur,
@@ -559,7 +559,7 @@ class TrajetDetailView(APIView):
             return None, _acces_refuse()
         try:
             trajet = Trajet.objects.select_related('ligne', 'bus').get(
-                id=trajet_id, compagnie=compagnie
+                id=trajet_id, company=compagnie
             )
             return trajet, None
         except Trajet.DoesNotExist:
@@ -579,7 +579,7 @@ class TrajetDetailView(APIView):
         if serializer.is_valid():
             data = serializer.validated_data
             # Vérifie que le nouveau bus appartient à la compagnie
-            if 'bus' in data and data['bus'].compagnie != trajet.compagnie:
+            if 'bus' in data and data['bus'].company != trajet.company:
                 return Response(
                     {'message': "Ce bus n'appartient pas à votre compagnie."},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -628,7 +628,7 @@ class HistoriqueTrajetsView(APIView):
 
         trajets = (
             Trajet.objects
-            .filter(compagnie=compagnie, statut__in=['TERMINE', 'ANNULE'], depart_prevu__gte=depuis)
+            .filter(company=compagnie, statut__in=['TERMINE', 'ANNULE'], depart_prevu__gte=depuis)
             .select_related('ligne', 'bus', 'controleur__utilisateur')
             .order_by('-depart_prevu')
         )
@@ -679,19 +679,19 @@ class TableauDeBordView(APIView):
 
         aujourd_hui = timezone.now().date()
 
-        bus_actifs   = Bus.objects.filter(compagnie=compagnie, actif=True).count()
-        bus_inactifs = Bus.objects.filter(compagnie=compagnie, actif=False).count()
+        bus_actifs   = Bus.objects.filter(company=compagnie, actif=True).count()
+        bus_inactifs = Bus.objects.filter(company=compagnie, actif=False).count()
 
         total_employes = (
             ProfilEmploye.objects
-            .filter(compagnie=compagnie, actif=True)
+            .filter(company=compagnie, actif=True)
             .exclude(role=ProfilEmploye.Role.CHEF_COMPAGNIE)
             .count()
         )
 
         trajets_du_jour_qs = (
             Trajet.objects
-            .filter(compagnie=compagnie, depart_prevu__date=aujourd_hui)
+            .filter(company=compagnie, depart_prevu__date=aujourd_hui)
             .select_related('ligne', 'bus')
             .order_by('depart_prevu')
         )
@@ -699,7 +699,7 @@ class TableauDeBordView(APIView):
         statuts_counts = {
             s['statut']: s['total']
             for s in Trajet.objects
-                .filter(compagnie=compagnie)
+                .filter(company=compagnie)
                 .values('statut')
                 .annotate(total=Count('id'))
         }
@@ -726,7 +726,7 @@ class TableauDeBordView(APIView):
                 }
                 for tarif in (
                     Tarif.objects
-                    .filter(compagnie=compagnie, ligne=t.ligne, type_bus=t.bus.type_bus)
+                    .filter(company=compagnie, ligne=t.ligne, type_bus=t.bus.type_bus)
                     .select_related('arret_depart', 'arret_arrivee')
                     .order_by('arret_depart__ordre')
                 )
@@ -764,7 +764,7 @@ class TableauDeBordView(APIView):
             }
             for e in (
                 ProfilEmploye.objects
-                .filter(compagnie=compagnie, actif=True)
+                .filter(company=compagnie, actif=True)
                 .exclude(role=ProfilEmploye.Role.CHEF_COMPAGNIE)
                 .select_related('utilisateur')
                 .order_by('role', 'utilisateur__last_name')
@@ -796,7 +796,7 @@ class TarifListCreateView(APIView):
         _, compagnie = get_chef_compagnie(request)
         if not compagnie:
             return _acces_refuse()
-        tarifs = Tarif.objects.filter(compagnie=compagnie).select_related('ligne', 'arret_depart', 'arret_arrivee')
+        tarifs = Tarif.objects.filter(company=compagnie).select_related('ligne', 'arret_depart', 'arret_arrivee')
         return Response(TarifSerializer(tarifs, many=True).data)
 
     def post(self, request):
@@ -807,7 +807,7 @@ class TarifListCreateView(APIView):
         if serializer.is_valid():
             data  = serializer.validated_data
             tarif = Tarif.objects.create(
-                compagnie=compagnie,
+                company=compagnie,
                 ligne=data['ligne'],
                 arret_depart=data['arret_depart'],
                 arret_arrivee=data['arret_arrivee'],
@@ -827,7 +827,7 @@ class TarifDetailView(APIView):
         if not compagnie:
             return None, _acces_refuse()
         try:
-            return Tarif.objects.get(id=tarif_id, compagnie=compagnie), None
+            return Tarif.objects.get(id=tarif_id, company=compagnie), None
         except Tarif.DoesNotExist:
             return None, Response({'message': 'Tarif introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 

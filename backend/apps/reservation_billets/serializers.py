@@ -13,7 +13,7 @@ class BilletSerializer(serializers.ModelSerializer):
     ligne_display       = serializers.CharField(source='trajet.ligne.__str__', read_only=True)
     bus_display         = serializers.CharField(source='trajet.bus.immatriculation', read_only=True)
     depart_prevu        = serializers.DateTimeField(source='trajet.depart_prevu', read_only=True)
-    nom_compagnie       = serializers.CharField(source='trajet.compagnie.nom', read_only=True)
+    nom_compagnie       = serializers.CharField(source='trajet.company.name', read_only=True)
     passager            = serializers.SerializerMethodField()
     statut_billet_display   = serializers.CharField(source='get_statut_billet_display',   read_only=True)
     statut_paiement_display = serializers.CharField(source='get_statut_paiement_display', read_only=True)

@@ -227,7 +227,7 @@ class CreationTarifSerializer(serializers.Serializer):
                 "L'arrêt d'arrivée doit être après l'arrêt de départ sur la ligne."
             )
         if compagnie and Tarif.objects.filter(
-            compagnie=compagnie, ligne=ligne,
+            company=compagnie, ligne=ligne,
             arret_depart=arret_dep, arret_arrivee=arret_arr,
             type_bus=data['type_bus'],
         ).exists():

@@ -47,7 +47,7 @@ def _segment_sur_ligne(ligne, ville_depart, ville_arrivee):
 
 def _prix_segment(trajet, arret_dep, arret_arr):
     tarif = Tarif.objects.filter(
-        compagnie=trajet.compagnie,
+        company=trajet.company,
         ligne=trajet.ligne,
         arret_depart=arret_dep,
         arret_arrivee=arret_arr,
@@ -67,8 +67,8 @@ def _serialize_trajet_client(trajet, arret_dep, arret_arr):
     places = _places_restantes(trajet, arret_dep, arret_arr)
     return {
         'id': trajet.id,
-        'compagnie': trajet.compagnie.nom,
-        'compagnie_id': trajet.compagnie_id,
+        'compagnie': trajet.company.name if trajet.company else '',
+        'compagnie_id': trajet.company_id,
         'ligne': str(trajet.ligne),
         'ligne_id': trajet.ligne_id,
         'bus': trajet.bus.immatriculation,
@@ -131,7 +131,7 @@ class ClientTrajetsView(APIView):
                 ligne__active=True,
                 bus__actif=True,
             )
-            .select_related('compagnie', 'ligne', 'bus')
+            .select_related('company', 'ligne', 'bus')
             .prefetch_related(
                 Prefetch('ligne__arrets', queryset=ArretLigne.objects.order_by('ordre'))
             )
@@ -160,7 +160,7 @@ class ClientTrajetDetailView(APIView):
         try:
             trajet = (
                 Trajet.objects
-                .select_related('compagnie', 'ligne', 'bus')
+                .select_related('company', 'ligne', 'bus')
                 .prefetch_related('ligne__arrets')
                 .get(id=trajet_id, statut__in=['PLANIFIE', 'EN_COURS'])
             )
@@ -190,7 +190,7 @@ class ClientTrajetDetailView(APIView):
 
         return Response({
             'id': trajet.id,
-            'compagnie': trajet.compagnie.nom,
+            'compagnie': trajet.company.name if trajet.company else '',
             'ligne': str(trajet.ligne),
             'bus': trajet.bus.immatriculation,
             'type_bus': trajet.bus.type_bus,
@@ -280,7 +280,7 @@ class ClientCommanderView(APIView):
             return Response({'message': 'Mode de paiement invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            trajet = Trajet.objects.select_related('bus', 'ligne', 'compagnie').get(id=trajet_id)
+            trajet = Trajet.objects.select_related('bus', 'ligne', 'company').get(id=trajet_id)
             siege = Siege.objects.get(id=siege_id)
             arret_dep = ArretLigne.objects.get(id=arret_depart_id)
             arret_arr = ArretLigne.objects.get(id=arret_arrivee_id)
@@ -363,7 +363,7 @@ class ClientMesBilletsView(APIView):
             Billet.objects
             .filter(reservation__profil_client=profil)
             .select_related(
-                'trajet__ligne', 'trajet__bus', 'trajet__compagnie',
+                'trajet__ligne', 'trajet__bus', 'trajet__company',
                 'siege', 'arret_depart', 'arret_arrivee',
             )
             .order_by('-emis_le')
@@ -386,7 +386,7 @@ class ClientBilletDetailView(APIView):
             billet = (
                 Billet.objects
                 .select_related(
-                    'trajet__ligne', 'trajet__bus', 'trajet__compagnie',
+                    'trajet__ligne', 'trajet__bus', 'trajet__company',
                     'siege', 'arret_depart', 'arret_arrivee',
                 )
                 .get(numero_billet=numero, reservation__profil_client=profil)

@@ -36,6 +36,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Seulement ajouter company si l'utilisateur en a une
         data['company'] = CompanySerializer(user.company).data if user.company else None
         data['is_super_admin'] = user.is_superuser and user.company_id is None
+        data['role'] = user.get_primary_role()
         return data
 
 
@@ -76,6 +77,7 @@ class CurrentUserView(viewsets.ViewSet):
             'is_super_admin': user.is_superuser and user.company_id is None,
             'permissions': [p.name for p in user.get_permissions()],
             'accessible_gares': accessible_gares,
+            'role': user.get_primary_role(),
         })
 
 
@@ -337,19 +339,85 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(grouped)
 
 
-class CompanyViewSet(viewsets.ViewSet):
-    """Company endpoints (current company only)"""
+class CompanyViewSet(viewsets.ModelViewSet):
+    """
+    CRUD Companies (tenants).
+    Seul le Super Admin Central (is_superuser + company=None) peut créer,
+    modifier ou supprimer des compagnies : ce sont les tenants de la
+    plateforme. Un utilisateur d'une compagnie ne voit/modifie que la sienne.
+    """
+    serializer_class = CompanySerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['is_active', 'subscription']
+    search_fields = ['name', 'email', 'slug']
+    ordering_fields = ['created_at', 'name']
+    ordering = ['name']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser and user.company_id is None:
+            return Company.objects.all()
+        if user.company_id:
+            return Company.objects.filter(id=user.company_id)
+        return Company.objects.none()
+
+    def _require_super_admin(self, request):
+        return request.user.is_superuser and request.user.company_id is None
+
+    def create(self, request, *args, **kwargs):
+        """Créer une nouvelle compagnie (tenant) - Super Admin uniquement"""
+        if not self._require_super_admin(request):
+            return Response(
+                {'detail': 'Seul le Super Admin peut créer une compagnie.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        AuditLog.objects.create(
+            user=request.user,
+            company=serializer.instance,
+            action='create',
+            resource_type='Company',
+            resource_id=serializer.instance.id,
+            resource_name=serializer.instance.name,
+            new_values=serializer.data,
+            description=f'Created company {serializer.instance.name}'
+        )
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        if not self._require_super_admin(request):
+            return Response(
+                {'detail': 'Seul le Super Admin peut modifier une compagnie.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if not self._require_super_admin(request):
+            return Response(
+                {'detail': 'Seul le Super Admin peut supprimer une compagnie.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'])
     def me(self, request):
-        """GET /api/companies/me/ - Current company"""
+        """GET /api/iam/companies/me/ - Compagnie de l'utilisateur courant"""
         company = request.user.company
+        if company is None:
+            return Response(None)
         return Response(CompanySerializer(company).data)
 
     @action(detail=False, methods=['get'])
     def gares(self, request):
-        """GET /api/companies/me/gares/ - List gares for current company"""
+        """GET /api/iam/companies/gares/ - Gares de la compagnie courante"""
         gares = Gare.objects.filter(company=request.user.company)
         serializer = GareSerializer(gares, many=True)
         return Response(serializer.data)

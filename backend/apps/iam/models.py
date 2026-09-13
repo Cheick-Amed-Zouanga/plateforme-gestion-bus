@@ -157,7 +157,7 @@ class CustomUser(AbstractUser):
         ordering = ['company', 'email']
 
     def __str__(self):
-        return f"{self.email} ({self.company.name})"
+        return f"{self.email} ({self.company.name if self.company else 'Platform Admin'})"
 
     def has_permission(self, permission_name):
         """Vérifier si l'user a une permission spécifique"""
@@ -204,6 +204,38 @@ class CustomUser(AbstractUser):
         if self.gare:
             return [self.gare]
         return list(self.company.gares.filter(is_active=True))
+
+    # Correspondance entre les noms de Role (RBAC) et les constantes de rôle
+    # attendues par le frontend (routing legacy: /chef, /sav, /controleur, ...).
+    ROLE_NAME_MAP = {
+        'Administrateur':  'CHEF_COMPAGNIE',
+        'Manager':         'CHEF_COMPAGNIE',
+        'Chef de gare':    'CHEF_COMPAGNIE',
+        'Contrôleur':      'CONTROLEUR',
+        'Réceptionniste':  'RECEPTIONNISTE',
+        'SAV':             'SAV',
+        'Comptable':       'COMPTABLE',
+    }
+
+    def get_primary_role(self):
+        """
+        Rôle "logique" pour le routing frontend (legacy-compatible) :
+        - Super Admin Central (is_superuser + pas de company) -> ADMIN_PLATEFORME
+        - Company + is_staff -> CHEF_COMPAGNIE (patron de compagnie)
+        - Sinon, déduit du premier Role RBAC assigné (voir ROLE_NAME_MAP)
+        """
+        if self.is_superuser and self.company_id is None:
+            return 'ADMIN_PLATEFORME'
+
+        if self.company_id and self.is_staff:
+            return 'CHEF_COMPAGNIE'
+
+        for role in self.roles.filter(is_active=True):
+            mapped = self.ROLE_NAME_MAP.get(role.name)
+            if mapped:
+                return mapped
+
+        return None
 
 
 class AuditLog(models.Model):

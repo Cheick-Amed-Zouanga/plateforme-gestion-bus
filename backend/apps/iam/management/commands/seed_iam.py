@@ -94,7 +94,7 @@ class Command(BaseCommand):
             {
                 'name': 'Administrateur',
                 'description': 'Accès complet à la plateforme',
-                'permissions': [p[2] for p in permissions_data],  # Tous les perms
+                'permissions': [f'{p[0]}.{p[1]}' for p in permissions_data],  # Tous les perms
             },
             {
                 'name': 'Manager',
@@ -180,7 +180,7 @@ class Command(BaseCommand):
             role.permissions.clear()
 
             # Ajouter les nouvelles
-            perms = Permission.objects.filter(description__in=role_data['permissions'])
+            perms = Permission.objects.filter(name__in=role_data['permissions'])
             role.permissions.set(perms)
 
             if created:

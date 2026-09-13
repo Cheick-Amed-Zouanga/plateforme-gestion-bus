@@ -2,7 +2,7 @@ import random
 
 from django.conf import settings
 from django.contrib.auth import logout
-from django.contrib.auth.models import User
+from apps.iam.models import CustomUser
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.middleware.csrf import get_token
@@ -16,7 +16,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import ProfilEmploye
 from .serializers import (
     ConnexionSerializer,
-    TokenObtainPairSerializer,
     CreationChefCompagnieSerializer,
     CreationComptablePlateformeSerializer,
     CreationEmployeCompagnieSerializer,
@@ -111,51 +110,8 @@ class ConnexionView(APIView):
         )
         return _set_jwt_cookies(response, refresh)
 
-
-class TokenObtainPairView(APIView):
-    """Login par email + password (compatible frontend React)"""
-    permission_classes = [AllowAny]
-    authentication_classes = []
-
-    def post(self, request):
-        serializer = TokenObtainPairSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        utilisateur = serializer.validated_data['utilisateur']
-        refresh = RefreshToken.for_user(utilisateur)
-
-        # Récupère les informations utilisateur
-        user_data = {
-            'id': utilisateur.id,
-            'email': utilisateur.email,
-            'username': utilisateur.username,
-            'first_name': utilisateur.first_name,
-            'last_name': utilisateur.last_name,
-        }
-
-        # Récupère la compagnie si c'est un employé
-        company_data = None
-        is_super_admin = utilisateur.is_superuser
-        if hasattr(utilisateur, 'profil_employe'):
-            profil = utilisateur.profil_employe
-            if profil.compagnie:
-                company_data = {
-                    'id': profil.compagnie.id,
-                    'nom': profil.compagnie.nom,
-                }
-
-        response = Response(
-            {
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-                'user': user_data,
-                'company': company_data,
-                'is_super_admin': is_super_admin,
-            },
-            status=status.HTTP_200_OK,
-        )
-        return response
+# Note: le login multi-tenant (email+password, JWT en localStorage) vit désormais
+# dans apps.iam.views.CustomTokenObtainPairView, monté sur /api/iam/auth/login/.
 
 
 class DeconnexionView(APIView):
@@ -320,11 +276,11 @@ class ListeEmployesCompagnieView(BaseAPIView):
         except ProfilEmploye.DoesNotExist:
             return Response({'message': 'Accès refusé.'}, status=status.HTTP_403_FORBIDDEN)
 
-        if profil.role != ProfilEmploye.Role.CHEF_COMPAGNIE or not profil.compagnie:
+        if profil.role != ProfilEmploye.Role.CHEF_COMPAGNIE or not profil.company:
             return Response({'message': 'Accès réservé au chef de compagnie.'}, status=status.HTTP_403_FORBIDDEN)
 
         employes = ProfilEmploye.objects.filter(
-            compagnie=profil.compagnie, actif=True
+            company=profil.company, actif=True
         ).exclude(id=profil.id).select_related('utilisateur').order_by('role')
 
         data = [
@@ -477,7 +433,7 @@ class DesactiverEmployeCompagnieView(BaseAPIView):
                 {"message": "Seul un chef de compagnie peut désactiver cet employé."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if employe_cible.compagnie != profil_chef.compagnie:
+        if employe_cible.company != profil_chef.company:
             return Response(
                 {"message": "Vous ne pouvez désactiver qu'un employé de votre compagnie."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -622,8 +578,8 @@ class ReinitialiserCompteView(BaseAPIView):
             )
 
         try:
-            utilisateur = User.objects.get(email__iexact=email)
-        except User.DoesNotExist:
+            utilisateur = CustomUser.objects.get(email__iexact=email)
+        except CustomUser.DoesNotExist:
             return Response(
                 {"message": "Aucun compte associé à cet email."},
                 status=status.HTTP_404_NOT_FOUND,

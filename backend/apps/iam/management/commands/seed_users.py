@@ -1,5 +1,26 @@
 from django.core.management.base import BaseCommand
-from apps.iam.models import Company, Gare, Role, Permission, CustomUser
+from apps.iam.models import Company, Gare, Role, CustomUser
+from apps.accounts.models import ProfilEmploye
+
+
+def _sync_profil_employe(user):
+    """
+    Pont avec l'ancien système métier (apps.reservation_billets, pages
+    /chef, /sav, /controleur...) qui repose encore sur ProfilEmploye.
+    On (re)crée/actualise le ProfilEmploye correspondant à partir du rôle
+    calculé par le nouveau système IAM (CustomUser.get_primary_role()).
+    """
+    role = user.get_primary_role()
+    if not role:
+        return
+    ProfilEmploye.objects.update_or_create(
+        utilisateur=user,
+        defaults={
+            'company': user.company,
+            'role': role,
+            'actif': user.is_active,
+        },
+    )
 
 
 class Command(BaseCommand):
@@ -7,6 +28,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write('🌱 Seeding multi-tenant structure...\n')
+        self.stdout.write(
+            self.style.WARNING(
+                'ℹ️  Lance d\'abord `python manage.py seed_iam` (permissions + rôles globaux).\n'
+            )
+        )
 
         # ==================== SUPER ADMIN CENTRAL ====================
         self.stdout.write('👑 Creating Super Admin Central (Platform Admin)...\n')
@@ -31,6 +57,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f'→ Super Admin existant: {super_admin.email}')
 
+        _sync_profil_employe(super_admin)
         self.stdout.write('\n')
 
         # ==================== COMPAGNIES DE TRANSPORT ====================
@@ -111,54 +138,28 @@ class Command(BaseCommand):
 
         self.stdout.write('\n')
 
-        # ==================== RÔLES PAR COMPAGNIE ====================
-        self.stdout.write('🎭 Creating company-specific roles...\n')
-
-        company_roles_data = [
-            {
-                'name': 'Chef de Gare',
-                'description': 'Responsable d\'une gare spécifique',
-                'permissions': ['gare.read', 'gare.update', 'employe.read', 'billet.read']
-            },
-            {
-                'name': 'Manager Local',
-                'description': 'Manager pour une compagnie',
-                'permissions': ['bus.read', 'trajet.read', 'trajet.update', 'employe.read']
-            },
-            {
-                'name': 'Service Client',
-                'description': 'SAV et support client',
-                'permissions': ['billet.read', 'billet.update', 'paiement.read']
-            },
-        ]
-
-        for slug, company in companies.items():
-            for role_data in company_roles_data:
-                role, created = Role.objects.get_or_create(
-                    company=company,
-                    name=role_data['name'],
-                    defaults={'description': role_data['description']}
-                )
-
-                if created:
-                    # Assigner les permissions
-                    perms = Permission.objects.filter(name__in=role_data['permissions'])
-                    role.permissions.set(perms)
-                    self.stdout.write(f'  ✓ {company.name}: {role.name}')
-
-        self.stdout.write('\n')
-
         # ==================== UTILISATEURS PAR COMPAGNIE ====================
+        # On réutilise les rôles GLOBAUX (company=None) créés par `seed_iam`,
+        # plutôt que de recréer des rôles par compagnie (évite les doublons
+        # de nommage type "Chef de Gare" vs "Chef de gare").
         self.stdout.write('👥 Creating users per company...\n')
 
-        # Récupérer les rôles globaux
-        admin_role = Role.objects.filter(name='Administrateur', company=None).first()
+        global_roles = {
+            r.name: r for r in Role.objects.filter(company=None)
+        }
+        missing = [
+            n for n in
+            ['Administrateur', 'Manager', 'Contrôleur', 'Réceptionniste', 'Chef de gare', 'SAV', 'Comptable']
+            if n not in global_roles
+        ]
+        if missing:
+            self.stdout.write(self.style.ERROR(
+                f'❌ Rôles globaux manquants: {missing}. '
+                f'Lance `python manage.py seed_iam` avant `seed_users`.'
+            ))
+            return
 
         for slug, company in companies.items():
-            chef_gare_role = Role.objects.filter(company=company, name='Chef de Gare').first()
-            manager_role = Role.objects.filter(company=company, name='Manager Local').first()
-            sav_role = Role.objects.filter(company=company, name='Service Client').first()
-
             gare = company.gares.first()
 
             users_data = [
@@ -169,7 +170,7 @@ class Command(BaseCommand):
                     'first_name': 'Admin',
                     'last_name': company.name,
                     'gare': gare,
-                    'roles': [admin_role, manager_role] if admin_role and manager_role else [],
+                    'roles': [global_roles['Administrateur']],
                     'is_staff': True,
                 },
                 {
@@ -179,7 +180,7 @@ class Command(BaseCommand):
                     'first_name': 'Manager',
                     'last_name': company.name,
                     'gare': gare,
-                    'roles': [manager_role] if manager_role else [],
+                    'roles': [global_roles['Manager']],
                 },
                 {
                     'email': f'chefgare@{slug}.com',
@@ -188,7 +189,7 @@ class Command(BaseCommand):
                     'first_name': 'Chef de Gare',
                     'last_name': company.name,
                     'gare': gare,
-                    'roles': [chef_gare_role] if chef_gare_role else [],
+                    'roles': [global_roles['Chef de gare']],
                 },
                 {
                     'email': f'sav@{slug}.com',
@@ -197,7 +198,34 @@ class Command(BaseCommand):
                     'first_name': 'Support',
                     'last_name': 'Client',
                     'gare': None,
-                    'roles': [sav_role] if sav_role else [],
+                    'roles': [global_roles['SAV']],
+                },
+                {
+                    'email': f'controleur@{slug}.com',
+                    'username': f'controleur_{slug}',
+                    'password': 'controleur@2024',
+                    'first_name': 'Contrôleur',
+                    'last_name': company.name,
+                    'gare': gare,
+                    'roles': [global_roles['Contrôleur']],
+                },
+                {
+                    'email': f'receptionniste@{slug}.com',
+                    'username': f'receptionniste_{slug}',
+                    'password': 'reception@2024',
+                    'first_name': 'Réceptionniste',
+                    'last_name': company.name,
+                    'gare': gare,
+                    'roles': [global_roles['Réceptionniste']],
+                },
+                {
+                    'email': f'comptable@{slug}.com',
+                    'username': f'comptable_{slug}',
+                    'password': 'comptable@2024',
+                    'first_name': 'Comptable',
+                    'last_name': company.name,
+                    'gare': None,
+                    'roles': [global_roles['Comptable']],
                 },
             ]
 
@@ -211,9 +239,16 @@ class Command(BaseCommand):
                 if created:
                     user.set_password(user_data['password'])
                     user.save()
-                    if roles:
-                        user.roles.set(roles)
                     self.stdout.write(f'  ✓ {company.name}: {user.email}')
+                else:
+                    self.stdout.write(f'  → {company.name}: {user.email} (existant)')
+
+                # Toujours (re)synchroniser les rôles, même si le compte existait
+                # déjà (auto-réparation après un changement de nommage des rôles).
+                if roles:
+                    user.roles.set(roles)
+
+                _sync_profil_employe(user)
 
         self.stdout.write(
             self.style.SUCCESS('\n✅ Multi-tenant seeding completed!\n')
@@ -229,10 +264,13 @@ class Command(BaseCommand):
 
         for slug, company in companies.items():
             self.stdout.write(self.style.SUCCESS(f'🏢 {company.name}'))
-            self.stdout.write(f'   Admin: admin@{slug}.com / admin@2024')
-            self.stdout.write(f'   Manager: manager@{slug}.com / manager@2024')
-            self.stdout.write(f'   Chef de Gare: chefgare@{slug}.com / chefgare@2024')
-            self.stdout.write(f'   SAV: sav@{slug}.com / sav@2024')
+            self.stdout.write(f'   Admin (Chef):     admin@{slug}.com / admin@2024')
+            self.stdout.write(f'   Manager:          manager@{slug}.com / manager@2024')
+            self.stdout.write(f'   Chef de Gare:     chefgare@{slug}.com / chefgare@2024')
+            self.stdout.write(f'   SAV:              sav@{slug}.com / sav@2024')
+            self.stdout.write(f'   Contrôleur:       controleur@{slug}.com / controleur@2024')
+            self.stdout.write(f'   Réceptionniste:   receptionniste@{slug}.com / reception@2024')
+            self.stdout.write(f'   Comptable:        comptable@{slug}.com / comptable@2024')
             self.stdout.write('')
 
         self.stdout.write('─' * 60)

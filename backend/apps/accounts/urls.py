@@ -4,7 +4,6 @@ from .views import (
     CsrfTokenView,
     InscriptionClientView,
     ConnexionView,
-    TokenObtainPairView,
     DeconnexionView,
     TokenRefreshCookieView,
     ProfilConnecteView,
@@ -29,7 +28,6 @@ urlpatterns = [
     # Auth
     path("csrf/",          CsrfTokenView.as_view(),         name="csrf-token"),
     path("connexion/",     ConnexionView.as_view(),          name="connexion"),
-    path("token/",         TokenObtainPairView.as_view(),    name="token-obtain"),
     path("deconnexion/",   DeconnexionView.as_view(),        name="deconnexion"),
     path("token/refresh/", TokenRefreshCookieView.as_view(), name="token-refresh"),
 
