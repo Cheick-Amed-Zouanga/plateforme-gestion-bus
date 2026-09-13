@@ -58,7 +58,7 @@ def _acces_refuse():
 
 
 def _generer_code_ligne(compagnie):
-    mots    = compagnie.nom.split()
+    mots    = compagnie.name.split()
     prefixe = ''.join(m[0].upper() for m in mots[:3])
     n       = Ligne.objects.filter(company=compagnie).count() + 1
     code    = f"{prefixe}-{n:03d}"
