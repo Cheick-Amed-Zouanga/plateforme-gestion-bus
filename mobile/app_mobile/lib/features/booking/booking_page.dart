@@ -51,7 +51,7 @@ class BookingSheet extends StatefulWidget {
   State<BookingSheet> createState() => _BookingSheetState();
 }
 
-/// Page pleine (fallback) — la confirmation s’ouvre plutôt via [showBookingSheet].
+/// Page pleine (fallback) — la confirmation s'ouvre plutôt via [showBookingSheet].
 class BookingPage extends StatelessWidget {
   final Map<String, dynamic> trajet;
   final int siegeId;
@@ -163,7 +163,7 @@ class _BookingSheetState extends State<BookingSheet> {
           children: [
             const Expanded(
               child: Text(
-                ‘Confirmer la réservation’,
+                'Confirmer la réservation',
                 style: TextStyle(
                   color: AppColors.navy,
                   fontSize: 18,
@@ -199,7 +199,7 @@ class _BookingSheetState extends State<BookingSheet> {
 
         // Payment method
         const Text(
-          ‘Mode de paiement’,
+          'Mode de paiement',
           style: TextStyle(
             color: AppColors.navy,
             fontSize: 15,
@@ -213,7 +213,7 @@ class _BookingSheetState extends State<BookingSheet> {
         // Info message
         CompactInfoCard(
           message:
-              ‘Votre billet sera généré immédiatement. Paiement en attente à la confirmation.’,
+              'Votre billet sera généré immédiatement. Paiement en attente à la confirmation.',
           type: InfoCardType.info,
         ),
 
@@ -230,7 +230,7 @@ class _BookingSheetState extends State<BookingSheet> {
 
         // Confirm button
         PrimaryButton(
-          label: ‘Confirmer et obtenir mon billet’,
+          label: 'Confirmer et obtenir mon billet',
           isLoading: _loading,
           onPressed: _loading ? null : _confirm,
         ),

@@ -1,13 +1,14 @@
-/** Plan de bus visuel : libre / payé / en attente. */
+/** Plan de bus visuel : vert = libre, rouge = prise. */
 
 const ETAT_STYLE = {
-  disponible: { color: "#26C2A1", label: "Libre" },
-  paye: { color: "#304FFE", label: "Payé" },
-  en_attente: { color: "#F0883E", label: "En attente de paiement" },
+  disponible: { color: "#16A34A", label: "Libre" },
+  paye: { color: "#DC2626", label: "Prise (payée)" },
+  en_attente: { color: "#B91C1C", label: "Prise (en attente)" },
+  occupe: { color: "#DC2626", label: "Prise" },
 };
 
 export function seatColor(etat, selected = false) {
-  if (selected) return "#58A6FF";
+  if (selected) return "#2563EB";
   return ETAT_STYLE[etat]?.color ?? "#9CA3AF";
 }
 
@@ -36,20 +37,26 @@ export function BusSeatPlan({
     <div>
       {showLegend && (
         <div style={st.legend}>
-          <LegendDot color="#26C2A1" label="Libre" />
-          <LegendDot color="#304FFE" label="Payé" />
-          <LegendDot color="#F0883E" label="En attente" />
-          {selected && <LegendDot color="#58A6FF" label={`Siège ${selected.numero}`} />}
+          <LegendDot color="#16A34A" label="Libre" />
+          <LegendDot color="#DC2626" label="Prise" />
+          <LegendDot color="#B91C1C" label="En attente de paiement" />
+          {selected && <LegendDot color="#2563EB" label={`Siège ${selected.numero}`} />}
         </div>
       )}
 
       {stats && (
         <div style={st.stats}>
-          <span>{stats.disponibles ?? 0} libres</span>
+          <span style={{ color: "#16A34A" }}>{stats.disponibles ?? 0} libres</span>
           <span>·</span>
-          <span>{stats.payes ?? 0} payés</span>
-          <span>·</span>
-          <span>{stats.en_attente ?? 0} en attente</span>
+          <span style={{ color: "#DC2626" }}>
+            {(stats.payes ?? 0) + (stats.en_attente ?? 0)} prises
+          </span>
+          {(stats.en_attente ?? 0) > 0 && (
+            <>
+              <span>·</span>
+              <span style={{ color: "#B91C1C" }}>{stats.en_attente} en attente</span>
+            </>
+          )}
         </div>
       )}
 

@@ -37,9 +37,12 @@ export default function LoginPage() {
       localStorage.setItem('username', data.user?.username || data.user?.email || '')
       localStorage.setItem('company', JSON.stringify(data.company))
       localStorage.setItem('is_super_admin', JSON.stringify(data.is_super_admin))
+      localStorage.setItem(
+        'permissions',
+        JSON.stringify(data.permissions || data.user?.permissions?.map(p => p.name || p) || [])
+      )
 
-      // Redirection selon le rôle (legacy pages /chef, /sav, /controleur, ...
-      // restent en place ; le Super Admin Central atterrit sur le nouveau dashboard)
+      // Redirection : Super Admin + tenants IAM → dashboard ; legacy sinon
       const ROUTE_BY_ROLE = {
         CHEF_COMPAGNIE: '/chef',
         SAV: '/sav',
@@ -48,7 +51,8 @@ export default function LoginPage() {
         RECEPTIONNISTE: '/receptionniste',
       }
 
-      if (data.is_super_admin) {
+      const perms = data.permissions || []
+      if (data.is_super_admin || (data.company && perms.length > 0)) {
         navigate('/dashboard')
       } else {
         navigate(ROUTE_BY_ROLE[data.role] || '/dashboard')
@@ -141,18 +145,27 @@ export default function LoginPage() {
             {/* Demo Credentials */}
             <div className="mt-8 pt-6 border-t border-slate-200">
               <p className="text-sm font-semibold text-slate-900 mb-3">Identifiants de test:</p>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-48 overflow-y-auto">
                 <div className="p-3 bg-blue-50 rounded border border-blue-200 text-xs">
-                  <p className="font-medium">👑 Super Admin</p>
+                  <p className="font-medium">Super Admin</p>
                   <p className="text-slate-600">superadmin@platform.com / superadmin@2024</p>
                 </div>
                 <div className="p-3 bg-green-50 rounded border border-green-200 text-xs">
-                  <p className="font-medium">🏢 Dakar Transport</p>
-                  <p className="text-slate-600">admin@dakar-transport.com / admin@2024</p>
+                  <p className="font-medium">Manager (Dakar Transport)</p>
+                  <p className="text-slate-600">manager@dakar-transport.com / manager@2024</p>
                 </div>
-                <div className="p-3 bg-purple-50 rounded border border-purple-200 text-xs">
-                  <p className="font-medium">🏢 Senegal Express</p>
-                  <p className="text-slate-600">admin@senegal-express.com / admin@2024</p>
+                <div className="p-3 bg-amber-50 rounded border border-amber-200 text-xs">
+                  <p className="font-medium">Comptable</p>
+                  <p className="text-slate-600">comptable@dakar-transport.com / comptable@2024</p>
+                </div>
+                <div className="p-3 bg-sky-50 rounded border border-sky-200 text-xs">
+                  <p className="font-medium">SAV</p>
+                  <p className="text-slate-600">sav@dakar-transport.com / sav@2024</p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded border border-slate-200 text-xs">
+                  <p className="font-medium">Réceptionniste / Contrôleur</p>
+                  <p className="text-slate-600">receptionniste@dakar-transport.com / reception@2024</p>
+                  <p className="text-slate-600">controleur@dakar-transport.com / controleur@2024</p>
                 </div>
               </div>
             </div>

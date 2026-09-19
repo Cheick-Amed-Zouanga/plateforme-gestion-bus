@@ -49,11 +49,19 @@ def _chef(request):
 
 
 def _staff_compagnie(request):
-    """Réceptionniste, contrôleur ou chef de la même compagnie."""
+    """
+    Accès plan / staff compagnie :
+    - Legacy : réceptionniste, contrôleur ou chef
+    - IAM : user.company + permission billet.read
+    """
     for getter in (_receptionniste, _controleur, _chef):
         profil, compagnie = getter(request)
         if compagnie:
             return profil, compagnie
+    user = request.user
+    company = getattr(user, 'company', None)
+    if company is not None and user.has_permission('billet.read'):
+        return None, company
     return None, None
 
 
@@ -640,9 +648,10 @@ class CommandesEnLigneView(APIView):
 
 class HistoriqueBilletsView(APIView):
     """
-    Historique des billets pour les trajets passés (TERMINE/ANNULE).
-    Chef : tous les billets de la compagnie.
-    Réceptionniste : seulement ses ventes guichet.
+    Historique / liste des billets de la compagnie.
+    - IAM : billet.read + company
+    - Legacy chef : tous les billets (trajets terminés/annulés)
+    - Legacy réceptionniste : ses ventes guichet seulement
     """
     permission_classes = [IsAuthenticated]
 
@@ -656,20 +665,28 @@ class HistoriqueBilletsView(APIView):
         return None, None
 
     def get(self, request):
-        profil, compagnie = self._get_profil_compagnie(request)
+        profil, compagnie_legacy = self._get_profil_compagnie(request)
+        # IAM prioritaire : billet.read + company → historique compagnie complète
+        company = getattr(request.user, 'company', None)
+        iam_access = bool(company and request.user.has_permission('billet.read'))
+        compagnie = company if iam_access else compagnie_legacy
         if not compagnie:
             return Response({'message': 'Accès non autorisé.'}, status=status.HTTP_403_FORBIDDEN)
 
         jours  = int(request.query_params.get('jours', 90))
         depuis = timezone.now() - timedelta(days=jours)
 
+        filters = {
+            'trajet__company': compagnie,
+            'emis_le__gte': depuis,
+        }
+        # Legacy : uniquement trajets clos ; IAM : tous les billets récents
+        if not iam_access:
+            filters['trajet__statut__in'] = ['TERMINE', 'ANNULE']
+
         qs = (
             Billet.objects
-            .filter(
-                trajet__company=compagnie,
-                trajet__statut__in=['TERMINE', 'ANNULE'],
-                emis_le__gte=depuis,
-            )
+            .filter(**filters)
             .select_related(
                 'trajet__ligne', 'trajet__bus', 'trajet__company',
                 'siege', 'arret_depart', 'arret_arrivee',
@@ -677,8 +694,8 @@ class HistoriqueBilletsView(APIView):
             .order_by('-emis_le')
         )
 
-        # La réceptionniste voit uniquement ses ventes guichet
-        if profil.role == ProfilEmploye.Role.RECEPTIONNISTE:
+        # Legacy réceptionniste uniquement : ses ventes guichet
+        if not iam_access and profil and profil.role == ProfilEmploye.Role.RECEPTIONNISTE:
             qs = qs.filter(source=Billet.Source.GUICHET, vendu_par=profil)
 
         total_billets  = qs.count()

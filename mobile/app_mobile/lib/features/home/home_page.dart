@@ -32,19 +32,19 @@ class _HomePageState extends State<HomePage> {
     (
       title: 'Voyagez simple',
       subtitle: 'Comparez les compagnies et réservez en quelques taps.',
-      colors: [AppColors.primaryBlue, AppColors.navy],
+      colors: [AppColors.primaryBlue, AppColors.ink],
       icon: Icons.directions_bus_filled_rounded,
     ),
     (
       title: 'Votre billet QR',
       subtitle: 'Un identifiant unique prêt pour le contrôle à bord.',
-      colors: [AppColors.teal, Color(0xFF0F766E)],
+      colors: [AppColors.teal, AppColors.orange],
       icon: Icons.qr_code_2_rounded,
     ),
     (
       title: 'Mode invité',
       subtitle: 'Explorez librement. Connectez-vous seulement pour commander.',
-      colors: [AppColors.navy, AppColors.primaryBlue],
+      colors: [AppColors.ink, AppColors.primaryBlue],
       icon: Icons.explore_rounded,
     ),
   ];
@@ -299,7 +299,7 @@ class _QuickActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       borderRadius: BorderRadius.circular(AppSpacing.radiusXL),
       child: InkWell(
         onTap: onTap,
@@ -346,3 +346,4 @@ class _QuickActionCard extends StatelessWidget {
     );
   }
 }
+

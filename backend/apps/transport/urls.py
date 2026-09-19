@@ -5,6 +5,7 @@ from .views import (
     ArretsPotentielsView, ArretAjouterView, ArretDetailView,
     CalculerSegmentView,
     TrajetListCreateView, TrajetDetailView,
+    HoraireListCreateView, HoraireDetailView, HoraireGenererView,
     HistoriqueTrajetsView, TableauDeBordView,
     TarifListCreateView, TarifDetailView,
 )
@@ -24,6 +25,11 @@ urlpatterns = [
 
     # ── Segment (prévisualisation) ───────────────────────────────────────
     path('calculer-segment/', CalculerSegmentView.as_view(), name='calculer-segment'),
+
+    # ── Horaires récurrents ──────────────────────────────────────────────
+    path('horaires/',                          HoraireListCreateView.as_view(), name='horaire-list-create'),
+    path('horaires/<int:horaire_id>/',         HoraireDetailView.as_view(),     name='horaire-detail'),
+    path('horaires/<int:horaire_id>/generer/', HoraireGenererView.as_view(),    name='horaire-generer'),
 
     # ── Trajets ──────────────────────────────────────────────────────────
     path('trajets/',                  TrajetListCreateView.as_view(), name='trajet-list-create'),

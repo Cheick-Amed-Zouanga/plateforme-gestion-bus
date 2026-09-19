@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { AdminLayout } from '@/components/shared/AdminLayout'
-import { DataTable, Column } from '@/components/shared/DataTable'
+import { DataTable } from '@/components/shared/DataTable'
+import type { Column } from '@/components/shared/DataTable'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'

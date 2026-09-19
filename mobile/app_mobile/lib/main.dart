@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/network/api_client.dart';
 import 'core/router/app_router.dart';
 import 'core/storage/session_storage.dart';
@@ -22,6 +23,9 @@ class TerrasoApp extends StatelessWidget {
       title: 'TERRASO',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
+      locale: const Locale('fr', 'FR'),
+      supportedLocales: const [Locale('fr', 'FR')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: const _Bootstrap(),
       routes: AppRouter.routes,
     );
@@ -70,3 +74,4 @@ class _BootstrapState extends State<_Bootstrap> {
     return _start!;
   }
 }
+

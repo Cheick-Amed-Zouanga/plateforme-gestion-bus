@@ -14,6 +14,7 @@ class BilletSerializer(serializers.ModelSerializer):
     bus_display         = serializers.CharField(source='trajet.bus.immatriculation', read_only=True)
     depart_prevu        = serializers.DateTimeField(source='trajet.depart_prevu', read_only=True)
     nom_compagnie       = serializers.CharField(source='trajet.company.name', read_only=True)
+    logo_compagnie      = serializers.SerializerMethodField()
     passager            = serializers.SerializerMethodField()
     statut_billet_display   = serializers.CharField(source='get_statut_billet_display',   read_only=True)
     statut_paiement_display = serializers.CharField(source='get_statut_paiement_display', read_only=True)
@@ -25,7 +26,7 @@ class BilletSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'numero_billet',
             'trajet', 'ligne_display', 'bus_display', 'depart_prevu',
-            'nom_compagnie',
+            'nom_compagnie', 'logo_compagnie',
             'siege', 'siege_numero',
             'arret_depart', 'arret_depart_ville',
             'arret_arrivee', 'arret_arrivee_ville',
@@ -41,6 +42,16 @@ class BilletSerializer(serializers.ModelSerializer):
 
     def get_passager(self, obj):
         return obj.nom_passager()
+
+    def get_logo_compagnie(self, obj):
+        company = getattr(obj.trajet, 'company', None)
+        if not company or not company.logo:
+            return None
+        request = self.context.get('request')
+        url = company.logo.url
+        if request is not None:
+            return request.build_absolute_uri(url)
+        return url
 
 
 class VenteBilletSerializer(serializers.Serializer):

@@ -4,6 +4,7 @@ import '../../core/network/api_client.dart';
 import '../../core/services/client_service.dart';
 import '../../core/storage/session_storage.dart';
 import '../../core/theme/app_theme.dart';
+import '../../shared/components/misc/bus_seat_plan.dart';
 import '../auth/login_page.dart';
 import '../booking/booking_page.dart';
 
@@ -33,6 +34,11 @@ class _TrajetDetailPageState extends State<TrajetDetailPage> {
   int get _trajetId => widget.trajetSummary['id'] as int;
   int get _arretDep => widget.trajetSummary['arret_depart_id'] as int;
   int get _arretArr => widget.trajetSummary['arret_arrivee_id'] as int;
+
+  List<Map<String, dynamic>> get _seats {
+    final list = (_plan?['plan'] as List?) ?? [];
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
 
   @override
   void initState() {
@@ -149,77 +155,51 @@ class _TrajetDetailPageState extends State<TrajetDetailPage> {
                       ),
                     ),
                     const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Text(
-                        'Choisissez votre siège',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Choisissez votre siège',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
                         children: [
-                          _legend(Colors.green.shade400, 'Libre'),
+                          _legend(const Color(0xFF16A34A), 'Libre'),
                           const SizedBox(width: 12),
-                          _legend(Colors.grey.shade400, 'Occupé'),
+                          _legend(const Color(0xFFDC2626), 'Occupé'),
                           const SizedBox(width: 12),
                           _legend(AppColors.primaryBlue, 'Sélectionné'),
                         ],
                       ),
                     ),
                     Expanded(
-                      child: GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          mainAxisSpacing: 10,
-                          crossAxisSpacing: 10,
-                        ),
-                        itemCount: (_plan?['plan'] as List?)?.length ?? 0,
-                        itemBuilder: (_, i) {
-                          final s = Map<String, dynamic>.from((_plan!['plan'] as List)[i] as Map);
-                          final id = s['id'] as int;
-                          final numero = s['numero'].toString();
-                          final occupe = s['etat'] == 'occupe';
-                          final selected = id == _selectedSiegeId;
-                          Color bg;
-                          if (occupe) {
-                            bg = Colors.grey.shade400;
-                          } else if (selected) {
-                            bg = AppColors.primaryBlue;
-                          } else {
-                            bg = Colors.green.shade400;
-                          }
-                          return InkWell(
-                            onTap: occupe
-                                ? null
-                                : () => setState(() {
-                                      _selectedSiegeId = id;
-                                      _selectedSiegeNumero = numero;
-                                    }),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: bg,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                numero,
-                                style: TextStyle(
-                                  color: occupe && !selected ? Colors.black54 : Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          );
+                      child: BusSeatPlan(
+                        seats: _seats,
+                        selectedId: _selectedSiegeId,
+                        onSelect: (s) {
+                          setState(() {
+                            _selectedSiegeId = s['id'] as int;
+                            _selectedSiegeNumero = s['numero'].toString();
+                          });
                         },
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: ElevatedButton(
-                        onPressed: _commander,
-                        child: const Text('Commander'),
+                    SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: ElevatedButton(
+                          onPressed: _commander,
+                          child: Text(
+                            _selectedSiegeNumero == null
+                                ? 'Commander'
+                                : 'Commander · Siège $_selectedSiegeNumero',
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -230,7 +210,11 @@ class _TrajetDetailPageState extends State<TrajetDetailPage> {
   Widget _legend(Color color, String label) {
     return Row(
       children: [
-        Container(width: 14, height: 14, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+        ),
         const SizedBox(width: 4),
         Text(label, style: const TextStyle(fontSize: 12)),
       ],

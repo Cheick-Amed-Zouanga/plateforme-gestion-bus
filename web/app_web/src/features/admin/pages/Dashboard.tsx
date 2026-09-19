@@ -1,27 +1,29 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AdminLayout } from '@/components/shared/AdminLayout'
 import { StatCard } from '@/components/shared/StatCard'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import {
   Users,
   Bus,
   DollarSign,
   Ticket,
-  TrendingUp,
-  Calendar,
   MapPin,
   Activity,
+  Building2,
 } from 'lucide-react'
+import apiFetch from '@/shared/services/api'
+import { useDashboardUser } from '@/shared/hooks/useDashboardUser'
 
 interface DashboardStats {
-  totalBuses: number
-  totalRoutes: number
-  activeTrips: number
-  totalRevenue: number
-  totalTickets: number
-  totalUsers: number
-  busUtilization: number
-  onTimePercentage: number
+  companies: number
+  buses: number
+  lignes: number
+  trajetsActifs: number
+  billets: number
+  recettes: number
+  employes: number
 }
 
 interface DashboardProps {
@@ -30,170 +32,227 @@ interface DashboardProps {
   onLogout?: () => void
 }
 
+function asList(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data
+  if (data && typeof data === 'object' && Array.isArray((data as { results?: unknown[] }).results)) {
+    return (data as { results: unknown[] }).results
+  }
+  return []
+}
+
 export function Dashboard({ userRole = 'admin', userEmail = 'admin@company.com', onLogout }: DashboardProps) {
+  const navigate = useNavigate()
+  const { isSuperAdmin, permissions } = useDashboardUser()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const permsKey = permissions.join('|')
 
   useEffect(() => {
-    // Simuler le chargement des données
-    setTimeout(() => {
-      setStats({
-        totalBuses: 45,
-        totalRoutes: 12,
-        activeTrips: 23,
-        totalRevenue: 1250000,
-        totalTickets: 3847,
-        totalUsers: 156,
-        busUtilization: 78,
-        onTimePercentage: 94,
-      })
-      setLoading(false)
-    }, 1000)
-  }, [])
+    let cancelled = false
+    const can = (name: string) => isSuperAdmin || permissions.includes(name)
+
+    async function charger() {
+      setLoading(true)
+      setError(null)
+      try {
+        const tasks: Promise<unknown>[] = []
+        const keys: string[] = []
+
+        if (can('company.read')) {
+          keys.push('companies')
+          tasks.push(apiFetch('/iam/companies/').catch(() => []))
+        }
+        if (can('bus.read')) {
+          keys.push('buses')
+          tasks.push(apiFetch('/transport/bus/').catch(() => []))
+        }
+        if (can('ligne.read')) {
+          keys.push('lignes')
+          tasks.push(apiFetch('/transport/lignes/').catch(() => []))
+        }
+        if (can('trajet.read')) {
+          keys.push('trajets')
+          tasks.push(apiFetch('/transport/trajets/').catch(() => []))
+        }
+        if (can('billet.read') || can('paiement.read')) {
+          keys.push('billets')
+          tasks.push(
+            apiFetch('/billets/historique/?jours=90').catch(() => ({
+              billets: [],
+              total_recettes: 0,
+              total_billets: 0,
+            }))
+          )
+        }
+        if (can('employe.read') || can('iam.read')) {
+          keys.push('users')
+          tasks.push(apiFetch('/iam/users/').catch(() => []))
+        }
+
+        const results = await Promise.all(tasks)
+        if (cancelled) return
+
+        const map: Record<string, unknown> = {}
+        keys.forEach((k, i) => { map[k] = results[i] })
+
+        const trajets = asList(map.trajets)
+        const trajetsActifs = trajets.filter((t: any) =>
+          t?.statut === 'PLANIFIE' || t?.statut === 'EN_COURS'
+        ).length
+
+        const hist = (map.billets || {}) as {
+          billets?: unknown[]
+          total_recettes?: number
+          total_billets?: number
+        }
+
+        setStats({
+          companies: asList(map.companies).length,
+          buses: asList(map.buses).filter((b: any) => b?.actif !== false).length,
+          lignes: asList(map.lignes).filter((l: any) => l?.active !== false).length,
+          trajetsActifs,
+          billets: hist.total_billets ?? asList(hist.billets).length,
+          recettes: Number(hist.total_recettes) || 0,
+          employes: asList(map.users).length,
+        })
+      } catch (e: any) {
+        if (!cancelled) {
+          setError(e.message || 'Erreur de chargement')
+          setStats({
+            companies: 0, buses: 0, lignes: 0, trajetsActifs: 0,
+            billets: 0, recettes: 0, employes: 0,
+          })
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    charger()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- permsKey stabilise permissions
+  }, [isSuperAdmin, permsKey])
+
+  const can = (name: string) => isSuperAdmin || permissions.includes(name)
 
   if (loading || !stats) {
     return (
       <AdminLayout userRole={userRole} userEmail={userEmail} onLogout={onLogout}>
-        <div className="flex items-center justify-center h-96">
-          <div className="text-slate-500">Chargement du dashboard...</div>
+        <div className="flex h-96 items-center justify-center">
+          <div className="text-slate-500">Chargement du dashboard…</div>
         </div>
       </AdminLayout>
     )
   }
 
   return (
-    <AdminLayout userRole={userRole} userEmail={userEmail}>
+    <AdminLayout userRole={userRole} userEmail={userEmail} onLogout={onLogout}>
       <div className="space-y-8">
-        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-600 mt-2">
-            Bienvenue sur votre tableau de bord d'administration
+          <p className="mt-2 text-slate-600">
+            {isSuperAdmin
+              ? 'Vue plateforme — compagnies et tenants'
+              : 'Vue opérationnelle de votre compagnie'}
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Bus Actifs"
-            value={stats.totalBuses}
-            icon={<Bus />}
-            trend={12}
-            trendLabel="vs mois dernier"
-            color="blue"
-          />
-          <StatCard
-            title="Trajets"
-            value={stats.totalRoutes}
-            icon={<MapPin />}
-            description="12 routes actives"
-            color="green"
-          />
-          <StatCard
-            title="Trajets en cours"
-            value={stats.activeTrips}
-            icon={<Activity />}
-            trend={8}
-            color="purple"
-          />
-          <StatCard
-            title="Revenu Total"
-            value={`${(stats.totalRevenue / 1000000).toFixed(1)}M`}
-            icon={<DollarSign />}
-            trend={24}
-            trendLabel="vs mois dernier"
-            color="orange"
-          />
-        </div>
-
-        {/* Second Row Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Billets Vendus"
-            value={stats.totalTickets}
-            icon={<Ticket />}
-            trend={15}
-            color="blue"
-          />
-          <StatCard
-            title="Utilisateurs"
-            value={stats.totalUsers}
-            icon={<Users />}
-            trend={5}
-            color="green"
-          />
-          <StatCard
-            title="Utilisation Bus"
-            value={`${stats.busUtilization}%`}
-            icon={<TrendingUp />}
-            trend={3}
-            color="purple"
-          />
-          <StatCard
-            title="Ponctualité"
-            value={`${stats.onTimePercentage}%`}
-            icon={<Calendar />}
-            trend={-2}
-            color="orange"
-          />
-        </div>
-
-        {/* Charts and Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Revenue Chart Placeholder */}
-          <Card className="lg:col-span-2 p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Revenus (30 derniers jours)
-            </h3>
-            <div className="h-64 flex items-center justify-center bg-slate-50 rounded">
-              <div className="text-slate-500">Graphique de revenus</div>
-            </div>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Actions Rapides
-            </h3>
-            <div className="space-y-3">
-              <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700">
-                Créer un trajet
-              </button>
-              <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700">
-                Ajouter un bus
-              </button>
-              <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700">
-                Gérer les utilisateurs
-              </button>
-              <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700">
-                Voir les rapports
-              </button>
-            </div>
-          </Card>
-        </div>
-
-        {/* Recent Activity */}
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">
-            Activité Récente
-          </h3>
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div
-                key={i}
-                className="flex items-start gap-4 p-3 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                <div className="w-2 h-2 bg-slate-900 rounded-full mt-1.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-900">
-                    Activité #{i}
-                  </p>
-                  <p className="text-xs text-slate-500">Il y a {i} minute(s)</p>
-                </div>
-              </div>
-            ))}
+        {error && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Certaines données n’ont pas pu être chargées : {error}
           </div>
-        </Card>
+        )}
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {(isSuperAdmin || can('company.read')) && (
+            <StatCard
+              title="Compagnies"
+              value={stats.companies}
+              icon={<Building2 />}
+              color="blue"
+            />
+          )}
+          {can('bus.read') && (
+            <StatCard title="Bus actifs" value={stats.buses} icon={<Bus />} color="blue" />
+          )}
+          {can('ligne.read') && (
+            <StatCard title="Lignes" value={stats.lignes} icon={<MapPin />} color="green" />
+          )}
+          {can('trajet.read') && (
+            <StatCard title="Trajets actifs" value={stats.trajetsActifs} icon={<Activity />} color="purple" />
+          )}
+          {(can('paiement.read') || can('billet.read') || can('rapport.read')) && (
+            <StatCard
+              title="Recettes (90 j)"
+              value={`${(stats.recettes / 1000).toFixed(0)}k`}
+              icon={<DollarSign />}
+              description={`${stats.recettes.toLocaleString('fr-FR')} XOF`}
+              color="orange"
+            />
+          )}
+          {can('billet.read') && (
+            <StatCard title="Billets (90 j)" value={stats.billets} icon={<Ticket />} color="blue" />
+          )}
+          {(can('employe.read') || can('iam.read')) && (
+            <StatCard title="Utilisateurs" value={stats.employes} icon={<Users />} color="green" />
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card className="p-6">
+            <h3 className="mb-4 text-lg font-semibold text-slate-900">Actions rapides</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(isSuperAdmin || can('company.create') || can('company.read')) && (
+                <Button variant="outline" className="justify-start" onClick={() => navigate('/dashboard/settings/company')}>
+                  {isSuperAdmin ? 'Gérer les compagnies' : 'Ma compagnie'}
+                </Button>
+              )}
+              {(can('trajet.create') || can('trajet.read')) && (
+                <Button variant="outline" className="justify-start" onClick={() => navigate('/dashboard/transport/trajets')}>
+                  Trajets
+                </Button>
+              )}
+              {(can('bus.create') || can('bus.read')) && (
+                <Button variant="outline" className="justify-start" onClick={() => navigate('/dashboard/transport/bus')}>
+                  Bus
+                </Button>
+              )}
+              {can('billet.read') && (
+                <Button variant="outline" className="justify-start" onClick={() => navigate('/dashboard/transport/tickets')}>
+                  Billets
+                </Button>
+              )}
+              {can('iam.read') && (
+                <Button variant="outline" className="justify-start" onClick={() => navigate('/dashboard/iam/users')}>
+                  Utilisateurs IAM
+                </Button>
+              )}
+              {(can('rapport.read') || can('paiement.read')) && (
+                <Button variant="outline" className="justify-start" onClick={() => navigate('/dashboard/finances/reports')}>
+                  Rapports
+                </Button>
+              )}
+              {can('sav.read') && (
+                <Button variant="outline" className="justify-start" onClick={() => navigate('/dashboard/support/tickets')}>
+                  Support SAV
+                </Button>
+              )}
+            </div>
+          </Card>
+
+          {(isSuperAdmin || can('gare.read') || can('gare.create') || can('company.create')) && (
+            <Card className="p-6">
+              <h3 className="mb-2 text-lg font-semibold text-slate-900">Raccourcis métier</h3>
+              <p className="mb-4 text-sm text-slate-600">
+                Flux recommandé : Compagnie → Gares → Bus → Lignes → Trajets → Tarifs → Employés.
+              </p>
+              <Button onClick={() => navigate(isSuperAdmin ? '/dashboard/settings/company' : '/dashboard/settings/gares')}>
+                {isSuperAdmin ? 'Créer / gérer une compagnie' : 'Configurer les gares'}
+              </Button>
+            </Card>
+          )}
+        </div>
       </div>
     </AdminLayout>
   )

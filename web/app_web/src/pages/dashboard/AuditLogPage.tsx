@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AdminLayout } from '@/components/shared/AdminLayout'
-import { DataTable, Column } from '@/components/shared/DataTable'
+import { DataTable } from '@/components/shared/DataTable'
+import type { Column } from '@/components/shared/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { useDashboardUser } from '@/shared/hooks/useDashboardUser'
 import apiFetch from '@/shared/services/api'

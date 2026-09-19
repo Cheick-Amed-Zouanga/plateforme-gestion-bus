@@ -10,6 +10,7 @@ class TripCard extends StatelessWidget {
   final String duration;
   final String price;
   final String busCompany;
+  final String? logoUrl;
   final String? badgeLabel;
   final bool isBooked;
   final VoidCallback? onTap;
@@ -24,6 +25,7 @@ class TripCard extends StatelessWidget {
     required this.duration,
     required this.price,
     required this.busCompany,
+    this.logoUrl,
     this.badgeLabel,
     this.isBooked = false,
     this.onTap,
@@ -47,137 +49,155 @@ class TripCard extends StatelessWidget {
               ),
               color: isBooked
                   ? AppColors.tealSoft.withValues(alpha: 0.3)
-                  : AppColors.white,
+                  : AppColors.surface,
             ),
-            padding: const EdgeInsets.all(AppSpacing.lg),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               children: [
-                // Header avec badge
+                // Compagnie + badge
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Times
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              departureTime,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.navy,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            const Text(
-                              '→',
-                              style: TextStyle(
-                                color: AppColors.textGrey,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Text(
-                              arrivalTime,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.navy,
-                              ),
-                            ),
-                          ],
+                    _CompanyAvatar(name: busCompany, logoUrl: logoUrl),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        busCompany,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
                         ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          duration,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textGrey,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    // Badge
                     if (badgeLabel != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs,
+                          horizontal: AppSpacing.sm,
+                          vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: badgeColor ?? AppColors.tealSoft,
+                          color: (badgeColor ?? AppColors.teal)
+                              .withValues(alpha: 0.15),
                           borderRadius:
                               BorderRadius.circular(AppSpacing.radiusRound),
                         ),
                         child: Text(
                           badgeLabel!,
                           style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: badgeColor == null
-                                ? AppColors.teal
-                                : Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: badgeColor ?? AppColors.teal,
                           ),
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Company
-                Text(
-                  busCompany,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textGrey,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
                 const SizedBox(height: AppSpacing.md),
 
-                // Route
+                // Horaires + trajet
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      departure,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textBody,
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            departureTime,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.navy,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            departure,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textGrey,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    Text(
-                      duration,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textGrey,
-                      ),
+                    Column(
+                      children: [
+                        Text(
+                          duration,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textLight,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 18,
+                              height: 1.5,
+                              color: AppColors.borderGrey,
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                Icons.directions_bus_rounded,
+                                size: 14,
+                                color: AppColors.primaryBlue,
+                              ),
+                            ),
+                            Container(
+                              width: 18,
+                              height: 1.5,
+                              color: AppColors.borderGrey,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    Text(
-                      arrival,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textBody,
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            arrivalTime,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.navy,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            arrival,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textGrey,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.md),
 
-                // Footer: Price + Action
+                // Footer
                 Container(
-                  padding: const EdgeInsets.only(top: AppSpacing.lg),
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
                   decoration: const BoxDecoration(
                     border: Border(
-                      top: BorderSide(
-                        color: AppColors.borderGrey,
-                        width: 1,
-                      ),
+                      top: BorderSide(color: AppColors.borderGrey, width: 1),
                     ),
                   ),
                   child: Row(
@@ -186,15 +206,15 @@ class TripCard extends StatelessWidget {
                       Text(
                         price,
                         style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
                           color: AppColors.primaryBlue,
                         ),
                       ),
                       Text(
                         isBooked ? 'Réservé' : 'Voir plus',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: isBooked
                               ? AppColors.teal
@@ -206,6 +226,51 @@ class TripCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompanyAvatar extends StatelessWidget {
+  final String name;
+  final String? logoUrl;
+
+  const _CompanyAvatar({required this.name, this.logoUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : 'B';
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.borderGrey),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: logoUrl != null
+          ? Image.network(
+              logoUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _fallback(initial),
+            )
+          : _fallback(initial),
+    );
+  }
+
+  Widget _fallback(String initial) {
+    return ColoredBox(
+      color: AppColors.primaryBlue.withValues(alpha: 0.12),
+      child: Center(
+        child: Text(
+          initial,
+          style: const TextStyle(
+            color: AppColors.primaryBlue,
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
           ),
         ),
       ),

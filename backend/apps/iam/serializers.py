@@ -4,12 +4,25 @@ from .models import Company, Gare, Permission, Role, CustomUser, AuditLog
 
 class CompanySerializer(serializers.ModelSerializer):
     """Sérializer pour Company"""
+    logo_url = serializers.SerializerMethodField()
+    # FormData / multipart omits unchecked booleans → DRF would force False
+    # without an explicit default matching the model.
+    is_active = serializers.BooleanField(required=False, default=True)
 
     class Meta:
         model = Company
         fields = ('id', 'name', 'email', 'phone', 'address', 'slug', 'logo',
-                  'subscription', 'is_active', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'created_at', 'updated_at')
+                  'logo_url', 'subscription', 'is_active', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'created_at', 'updated_at', 'logo_url')
+
+    def get_logo_url(self, obj):
+        if not obj.logo:
+            return None
+        request = self.context.get('request')
+        url = obj.logo.url
+        if request is not None:
+            return request.build_absolute_uri(url)
+        return url
 
 
 class GareSerializer(serializers.ModelSerializer):

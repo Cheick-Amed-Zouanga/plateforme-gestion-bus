@@ -19,6 +19,7 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '10.0.2.2', '0.0.0.0']
 INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
+    'django_filters',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -92,7 +93,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # --- Internationalisation ---
 LANGUAGE_CODE = 'fr-fr'
-TIME_ZONE = 'America/Montreal'
+# Application burkinabè — horaires locaux Ouagadougou (UTC+0, pas de DST)
+TIME_ZONE = 'Africa/Ouagadougou'
 USE_I18N = True
 USE_TZ = True
 
@@ -163,6 +165,10 @@ JWT_AUTH_COOKIE         = 'access_token'
 JWT_AUTH_REFRESH_COOKIE = 'refresh_token'
 JWT_AUTH_COOKIE_SAMESITE = 'Lax'
 JWT_AUTH_COOKIE_SECURE  = not DEBUG  # True en prod : cookie envoyé uniquement en HTTPS
+
+# --- Médias (logos compagnies, etc.) ---
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # --- Sécurité HTTPS ---

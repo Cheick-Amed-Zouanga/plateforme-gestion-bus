@@ -51,6 +51,18 @@ class _DatePickerFieldState extends State<DatePickerField> {
   }
 
   @override
+  void didUpdateWidget(DatePickerField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _firstDate = widget.firstDate ?? DateTime.now();
+    _lastDate = widget.lastDate ?? DateTime.now().add(const Duration(days: 90));
+    if (oldWidget.value != widget.value) {
+      _controller.text = widget.value == null
+          ? ''
+          : DateFormat('dd MMM yyyy', 'fr_FR').format(widget.value!);
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     _focusNode.removeListener(_onFocusChange);
@@ -73,7 +85,7 @@ class _DatePickerFieldState extends State<DatePickerField> {
       locale: const Locale('fr', 'FR'),
     );
 
-    if (picked != null) {
+    if (mounted && picked != null) {
       setState(() {
         _controller.text = DateFormat('dd MMM yyyy', 'fr_FR').format(picked);
       });
@@ -86,6 +98,7 @@ class _DatePickerFieldState extends State<DatePickerField> {
     return GestureDetector(
       onTap: _pickDate,
       child: TextFormField(
+        onTap: _pickDate,
         controller: _controller,
         focusNode: _focusNode,
         readOnly: true,
@@ -121,7 +134,7 @@ class _DatePickerFieldState extends State<DatePickerField> {
             size: 24,
           ),
           filled: true,
-          fillColor: AppColors.white,
+          fillColor: AppColors.surface,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
@@ -159,3 +172,4 @@ class _DatePickerFieldState extends State<DatePickerField> {
     );
   }
 }
+

@@ -9,6 +9,9 @@ class CityPickerField extends StatefulWidget {
   final String label;
   final String? hint;
   final String? Function(String?)? validator;
+  /// Mode compact : moins de padding, idéal pour De / À côte à côte.
+  final bool compact;
+  final IconData? prefixIconData;
 
   const CityPickerField({
     super.key,
@@ -18,6 +21,8 @@ class CityPickerField extends StatefulWidget {
     required this.label,
     this.hint,
     this.validator,
+    this.compact = false,
+    this.prefixIconData,
   });
 
   @override
@@ -35,6 +40,14 @@ class _CityPickerFieldState extends State<CityPickerField> {
     _controller = TextEditingController(text: widget.value ?? '');
     _focusNode = FocusNode();
     _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(CityPickerField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      _controller.text = widget.value ?? '';
+    }
   }
 
   @override
@@ -62,7 +75,7 @@ class _CityPickerFieldState extends State<CityPickerField> {
       ),
     );
 
-    if (selected != null) {
+    if (mounted && selected != null) {
       setState(() {
         _controller.text = selected;
       });
@@ -75,59 +88,69 @@ class _CityPickerFieldState extends State<CityPickerField> {
     return GestureDetector(
       onTap: _showCityPicker,
       child: TextFormField(
+        onTap: _showCityPicker,
         controller: _controller,
         focusNode: _focusNode,
         readOnly: true,
         validator: widget.validator,
-        style: const TextStyle(
-          fontSize: 14,
+        style: TextStyle(
+          fontSize: widget.compact ? 13 : 14,
           color: AppColors.textBody,
           fontWeight: FontWeight.w500,
         ),
         decoration: InputDecoration(
           labelText: widget.label,
           hintText: widget.hint,
+          isDense: widget.compact,
           labelStyle: TextStyle(
             color: _isFocused ? AppColors.primaryBlue : AppColors.textGrey,
-            fontSize: 14,
+            fontSize: widget.compact ? 12 : 14,
             fontWeight: FontWeight.w500,
           ),
-          hintStyle: const TextStyle(
+          hintStyle: TextStyle(
             color: AppColors.textLight,
-            fontSize: 14,
+            fontSize: widget.compact ? 12 : 14,
           ),
-          prefixIcon: const Icon(
-            Icons.location_on_rounded,
-            size: 20,
+          prefixIcon: Icon(
+            widget.prefixIconData ?? Icons.location_on_rounded,
+            size: widget.compact ? 18 : 20,
             color: AppColors.textGrey,
           ),
-          suffixIcon: Icon(
-            Icons.arrow_drop_down_rounded,
-            color: _isFocused ? AppColors.primaryBlue : AppColors.textGrey,
-            size: 24,
-          ),
+          suffixIcon: widget.compact
+              ? null
+              : Icon(
+                  Icons.arrow_drop_down_rounded,
+                  color: _isFocused ? AppColors.primaryBlue : AppColors.textGrey,
+                  size: 24,
+                ),
           filled: true,
-          fillColor: AppColors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
+          fillColor: AppColors.surface,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: widget.compact ? AppSpacing.sm : AppSpacing.lg,
+            vertical: widget.compact ? AppSpacing.sm : AppSpacing.md,
           ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+            borderRadius: BorderRadius.circular(
+              widget.compact ? AppSpacing.radiusMedium : AppSpacing.radiusLarge,
+            ),
             borderSide: const BorderSide(
               color: AppColors.borderGrey,
               width: 1,
             ),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+            borderRadius: BorderRadius.circular(
+              widget.compact ? AppSpacing.radiusMedium : AppSpacing.radiusLarge,
+            ),
             borderSide: const BorderSide(
               color: AppColors.borderGrey,
               width: 1,
             ),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+            borderRadius: BorderRadius.circular(
+              widget.compact ? AppSpacing.radiusMedium : AppSpacing.radiusLarge,
+            ),
             borderSide: const BorderSide(
               color: AppColors.primaryBlue,
               width: 2,
@@ -186,7 +209,7 @@ class _CityPickerModalState extends State<_CityPickerModal> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: const BoxDecoration(
-        color: AppColors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(AppSpacing.radiusRound),
           topRight: Radius.circular(AppSpacing.radiusRound),
@@ -296,3 +319,4 @@ class _CityPickerModalState extends State<_CityPickerModal> {
     );
   }
 }
+

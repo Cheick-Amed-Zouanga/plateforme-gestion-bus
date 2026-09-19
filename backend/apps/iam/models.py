@@ -61,15 +61,19 @@ class Gare(models.Model):
 class Permission(models.Model):
     """Permissions CRUD par ressource"""
     RESOURCE_CHOICES = [
-        ('bus', 'Bus'),
-        ('trajet', 'Trajet'),
-        ('employe', 'Employé'),
+        ('company', 'Compagnie'),
         ('gare', 'Gare'),
+        ('bus', 'Bus'),
+        ('ligne', 'Ligne'),
+        ('trajet', 'Trajet'),
         ('tarif', 'Tarif'),
+        ('employe', 'Employé'),
         ('billet', 'Billet'),
         ('paiement', 'Paiement'),
         ('rapport', 'Rapport'),
         ('iam', 'IAM'),
+        ('role', 'Rôle & Permission'),
+        ('audit', 'Audit'),
         ('dashboard', 'Dashboard'),
     ]
 

@@ -1,7 +1,14 @@
-import Router from "./app/router";
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { Toaster } from "@/components/ui/sonner"
+import Router from "./app/router"
 
 function App() {
-  return <Router />;
+  return (
+    <TooltipProvider>
+      <Router />
+      <Toaster />
+    </TooltipProvider>
+  )
 }
 
-export default App;
+export default App

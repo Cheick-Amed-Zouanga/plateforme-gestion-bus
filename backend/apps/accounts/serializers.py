@@ -7,7 +7,38 @@ from django.utils.text import slugify
 from rest_framework import serializers
 
 from .models import ProfilClient, ContactConfiance, ProfilEmploye
-from apps.iam.models import CustomUser, Company
+from apps.iam.models import CustomUser, Company, Role
+
+
+def resolve_company_for_employe(user, permission_name=None):
+    """
+    Compagnie pour ops employés.
+    IAM (employe.*) ou legacy CHEF_COMPAGNIE.
+    """
+    company = getattr(user, 'company', None)
+    if company is not None:
+        if permission_name is None or user.has_permission(permission_name):
+            return company
+        try:
+            if user.profil_employe.role == ProfilEmploye.Role.CHEF_COMPAGNIE:
+                return company
+        except ProfilEmploye.DoesNotExist:
+            pass
+        return None
+
+    try:
+        profil = user.profil_employe
+        if profil.role == ProfilEmploye.Role.CHEF_COMPAGNIE and profil.company_id:
+            return profil.company
+    except ProfilEmploye.DoesNotExist:
+        pass
+    return None
+
+
+IAM_ROLE_BY_PROFIL = {
+    ProfilEmploye.Role.RECEPTIONNISTE: 'Réceptionniste',
+    ProfilEmploye.Role.CONTROLEUR: 'Contrôleur',
+}
 
 
 class InscriptionClientSerializer(serializers.Serializer):
@@ -314,27 +345,14 @@ class CreationEmployeCompagnieSerializer(BaseCreationEmployeSerializer):
     )
 
     def validate(self, data):
-        request = self.context.get("request")
-        utilisateur_connecte = request.user
-
-        try:
-            profil_employe = utilisateur_connecte.profil_employe
-        except ProfilEmploye.DoesNotExist:
-            raise serializers.ValidationError(
-                "Seul un chef de compagnie peut créer un employé."
-            )
-
-        if profil_employe.role != ProfilEmploye.Role.CHEF_COMPAGNIE:
-            raise serializers.ValidationError(
-                "Seul un chef de compagnie peut créer un employé."
-            )
-
-        if profil_employe.company is None:
-            raise serializers.ValidationError(
-                "Le chef connecté n'est rattaché à aucune compagnie."
-            )
-
         data = super().validate(data)
+        request = self.context.get("request")
+        company = resolve_company_for_employe(request.user, 'employe.create')
+        if company is None:
+            raise serializers.ValidationError(
+                "Permission employe.create requise, ou rôle chef de compagnie."
+            )
+        self.context['company'] = company
         return data
 
     def create(self, validated_data):
@@ -342,8 +360,7 @@ class CreationEmployeCompagnieSerializer(BaseCreationEmployeSerializer):
         validated_data.pop("confirmationPassword", None)
         telephone = validated_data.pop("tel")
         role = validated_data.pop("role")
-
-        chef = self.context["request"].user.profil_employe
+        company = self.context['company']
 
         utilisateur = CustomUser.objects.create_user(
             username=validated_data["username"],
@@ -351,11 +368,20 @@ class CreationEmployeCompagnieSerializer(BaseCreationEmployeSerializer):
             last_name=validated_data["nom"],
             email=validated_data["email"],
             password=mot_de_passe,
+            company=company,
         )
+
+        iam_name = IAM_ROLE_BY_PROFIL.get(role)
+        if iam_name:
+            iam_role = Role.objects.filter(
+                company=None, name=iam_name, is_active=True
+            ).first()
+            if iam_role:
+                utilisateur.roles.add(iam_role)
 
         ProfilEmploye.objects.create(
             utilisateur=utilisateur,
-            company=chef.company,
+            company=company,
             role=role,
             telephone=telephone,
             actif=True,
@@ -369,10 +395,17 @@ class ConnexionSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, required=True)
 
     def validate(self, data):
-        utilisateur = authenticate(
-            username=data.get("username"),
-            password=data.get("password"),
-        )
+        login = (data.get("username") or "").strip()
+        password = data.get("password")
+
+        # USERNAME_FIELD = email : résoudre aussi par username (mobile)
+        email_login = login
+        if "@" not in login:
+            user_by_username = CustomUser.objects.filter(username__iexact=login).first()
+            if user_by_username is not None:
+                email_login = user_by_username.email
+
+        utilisateur = authenticate(username=email_login, password=password)
 
         if utilisateur is None:
             raise serializers.ValidationError("Nom d'utilisateur ou mot de passe incorrect.")
@@ -482,19 +515,13 @@ class ModificationEmployeCompagnieSerializer(serializers.Serializer):
         request = self.context.get("request")
         employe_cible = self.context.get("employe_cible")
 
-        try:
-            profil_chef = request.user.profil_employe
-        except ProfilEmploye.DoesNotExist:
+        company = resolve_company_for_employe(request.user, 'employe.update')
+        if company is None:
             raise serializers.ValidationError(
-                "Seul un chef de compagnie peut modifier un employé."
+                "Permission employe.update requise, ou rôle chef de compagnie."
             )
 
-        if profil_chef.role != ProfilEmploye.Role.CHEF_COMPAGNIE:
-            raise serializers.ValidationError(
-                "Seul un chef de compagnie peut modifier un employé."
-            )
-
-        if employe_cible.company != profil_chef.company:
+        if employe_cible.company_id != company.id:
             raise serializers.ValidationError(
                 "Vous ne pouvez modifier qu'un employé de votre compagnie."
             )

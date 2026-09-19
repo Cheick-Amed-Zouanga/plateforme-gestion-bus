@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { AdminLayout } from '@/components/shared/AdminLayout'
-import { DataTable, Column } from '@/components/shared/DataTable'
+import { DataTable } from '@/components/shared/DataTable'
+import type { Column } from '@/components/shared/DataTable'
 import { SimpleModal } from '@/components/shared/SimpleModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

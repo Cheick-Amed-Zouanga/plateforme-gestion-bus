@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import ProfilClient
 from apps.transport.models import ArretLigne, Siege, Tarif, Trajet
+from apps.transport.services import assurer_trajets_recherche
 from .models import Billet, Reservation
 from .serializers import BilletSerializer
 from .views import _generer_barcode_image, _generer_qr_image, _sieges_occupes
@@ -62,13 +63,23 @@ def _places_restantes(trajet, arret_dep, arret_arr):
     return max(0, total - len(occupes))
 
 
-def _serialize_trajet_client(trajet, arret_dep, arret_arr):
+def _logo_compagnie(company, request=None):
+    if not company or not company.logo:
+        return None
+    url = company.logo.url
+    if request is not None:
+        return request.build_absolute_uri(url)
+    return url
+
+
+def _serialize_trajet_client(trajet, arret_dep, arret_arr, request=None):
     prix = _prix_segment(trajet, arret_dep, arret_arr)
     places = _places_restantes(trajet, arret_dep, arret_arr)
     return {
         'id': trajet.id,
         'compagnie': trajet.company.name if trajet.company else '',
         'compagnie_id': trajet.company_id,
+        'logo_compagnie': _logo_compagnie(trajet.company, request),
         'ligne': str(trajet.ligne),
         'ligne_id': trajet.ligne_id,
         'bus': trajet.bus.immatriculation,
@@ -122,6 +133,9 @@ class ClientTrajetsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Matérialise les départs depuis les horaires récurrents (heure locale Burkina)
+        assurer_trajets_recherche(depart, arrivee, date=date, nb_departs=7)
+
         now = timezone.now()
         qs = (
             Trajet.objects
@@ -147,7 +161,7 @@ class ClientTrajetsView(APIView):
             arret_dep, arret_arr = _segment_sur_ligne(trajet.ligne, depart, arrivee)
             if not arret_dep:
                 continue
-            resultats.append(_serialize_trajet_client(trajet, arret_dep, arret_arr))
+            resultats.append(_serialize_trajet_client(trajet, arret_dep, arret_arr, request))
 
         return Response({'trajets': resultats, 'total': len(resultats)})
 
@@ -186,11 +200,12 @@ class ClientTrajetDetailView(APIView):
         if depart and arrivee:
             arret_dep, arret_arr = _segment_sur_ligne(trajet.ligne, depart, arrivee)
             if arret_dep:
-                segment = _serialize_trajet_client(trajet, arret_dep, arret_arr)
+                segment = _serialize_trajet_client(trajet, arret_dep, arret_arr, request)
 
         return Response({
             'id': trajet.id,
             'compagnie': trajet.company.name if trajet.company else '',
+            'logo_compagnie': _logo_compagnie(trajet.company, request),
             'ligne': str(trajet.ligne),
             'bus': trajet.bus.immatriculation,
             'type_bus': trajet.bus.type_bus,
@@ -344,7 +359,7 @@ class ClientCommanderView(APIView):
             'devise': 'XOF',
             'qr_image': _generer_qr_image(billet.numero_billet),
             'barcode_image': _generer_barcode_image(billet.numero_billet),
-            'billet': BilletSerializer(billet).data,
+            'billet': BilletSerializer(billet, context={'request': request}).data,
         }, status=status.HTTP_201_CREATED)
 
 
@@ -368,7 +383,9 @@ class ClientMesBilletsView(APIView):
             )
             .order_by('-emis_le')
         )
-        return Response({'billets': BilletSerializer(billets, many=True).data})
+        return Response({
+            'billets': BilletSerializer(billets, many=True, context={'request': request}).data,
+        })
 
 
 class ClientBilletDetailView(APIView):
@@ -395,7 +412,7 @@ class ClientBilletDetailView(APIView):
             return Response({'message': 'Billet introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
         return Response({
-            'billet': BilletSerializer(billet).data,
+            'billet': BilletSerializer(billet, context={'request': request}).data,
             'qr_image': _generer_qr_image(billet.numero_billet),
             'barcode_image': _generer_barcode_image(billet.numero_billet),
         })

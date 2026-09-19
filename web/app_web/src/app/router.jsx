@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import SessionTimeout from "../components/SessionTimeOut";
 import ProtectedRoute from "../components/ProtectedRoute";
 import RequireIamAuth from "../components/RequireIamAuth";
+import RequirePermission from "../components/RequirePermission";
 
 import LoginPage from "../features/accounts/pages/LoginPage";
 import DashboardHome from "../pages/DashboardHome";
@@ -11,6 +12,16 @@ import RolesPage from "../pages/dashboard/RolesPage";
 import PermissionsPage from "../pages/dashboard/PermissionsPage";
 import AuditLogPage from "../pages/dashboard/AuditLogPage";
 import CompaniesPage from "../pages/dashboard/CompaniesPage";
+import GaresPage from "../pages/dashboard/GaresPage";
+import BusPage from "../pages/dashboard/BusPage";
+import LignesPage from "../pages/dashboard/LignesPage";
+import TrajetsPage from "../pages/dashboard/TrajetsPage";
+import TarifsPage from "../pages/dashboard/TarifsPage";
+import EmployeesPage from "../pages/dashboard/EmployeesPage";
+import TicketsPage from "../pages/dashboard/TicketsPage";
+import PaymentsPage from "../pages/dashboard/PaymentsPage";
+import ReportsPage from "../pages/dashboard/ReportsPage";
+import SupportTicketsPage from "../pages/dashboard/SupportTicketsPage";
 import ComingSoonPage from "../pages/dashboard/ComingSoonPage";
 import AdminLayout from "../features/accounts/layouts/AdminLayout";
 import AdminHomePage from "../features/accounts/pages/AdminHomePage";
@@ -71,6 +82,15 @@ const CONTROLEUR = ["CONTROLEUR"];
 const COMPTABLE = ["COMPTABLE"];
 const RECEPTIONNISTE = ["RECEPTIONNISTE"];
 
+/** Auth JWT + au moins une permission IAM (aligné sur le menu Sidebar). */
+function iamPage(perms, page) {
+  return (
+    <RequireIamAuth>
+      <RequirePermission anyOf={perms}>{page}</RequirePermission>
+    </RequireIamAuth>
+  );
+}
+
 function Router() {
   return (
     <BrowserRouter>
@@ -81,29 +101,25 @@ function Router() {
         <Route path="/login" element={<LoginPage />} />
 
         {/* ── Nouveau système multi-tenant (IAM / Super Admin Central) ── */}
-        <Route
-          path="/dashboard"
-          element={
-            <RequireIamAuth>
-              <DashboardHome />
-            </RequireIamAuth>
-          }
-        />
-        <Route path="/dashboard/iam/users"       element={<RequireIamAuth><UsersPage /></RequireIamAuth>} />
-        <Route path="/dashboard/iam/roles"        element={<RequireIamAuth><RolesPage /></RequireIamAuth>} />
-        <Route path="/dashboard/iam/permissions"  element={<RequireIamAuth><PermissionsPage /></RequireIamAuth>} />
-        <Route path="/dashboard/iam/audit-logs"   element={<RequireIamAuth><AuditLogPage /></RequireIamAuth>} />
-        <Route path="/dashboard/settings/company" element={<RequireIamAuth><CompaniesPage /></RequireIamAuth>} />
+        <Route path="/dashboard" element={iamPage(["dashboard.read"], <DashboardHome />)} />
+        <Route path="/dashboard/iam/users"       element={iamPage(["iam.read"], <UsersPage />)} />
+        <Route path="/dashboard/iam/roles"        element={iamPage(["iam.read"], <RolesPage />)} />
+        <Route path="/dashboard/iam/permissions"  element={iamPage(["iam.read"], <PermissionsPage />)} />
+        <Route path="/dashboard/iam/audit-logs"   element={iamPage(["audit.read", "iam.read"], <AuditLogPage />)} />
+        <Route path="/dashboard/settings/company" element={iamPage(["company.create", "company.read"], <CompaniesPage />)} />
+        <Route path="/dashboard/settings/gares"   element={iamPage(["gare.read"], <GaresPage />)} />
 
-        {/* ── Sections du dashboard pas encore construites (évite les pages blanches) ── */}
-        <Route path="/dashboard/transport/bus"     element={<RequireIamAuth><ComingSoonPage title="Bus" /></RequireIamAuth>} />
-        <Route path="/dashboard/transport/routes"  element={<RequireIamAuth><ComingSoonPage title="Routes" /></RequireIamAuth>} />
-        <Route path="/dashboard/transport/tickets" element={<RequireIamAuth><ComingSoonPage title="Billets" /></RequireIamAuth>} />
-        <Route path="/dashboard/rh/employees"      element={<RequireIamAuth><ComingSoonPage title="Employés" /></RequireIamAuth>} />
-        <Route path="/dashboard/rh/teams"          element={<RequireIamAuth><ComingSoonPage title="Équipes" /></RequireIamAuth>} />
-        <Route path="/dashboard/finances/payments"  element={<RequireIamAuth><ComingSoonPage title="Paiements" /></RequireIamAuth>} />
-        <Route path="/dashboard/finances/reports"   element={<RequireIamAuth><ComingSoonPage title="Rapports" /></RequireIamAuth>} />
-        <Route path="/dashboard/support/tickets"    element={<RequireIamAuth><ComingSoonPage title="Support Client" /></RequireIamAuth>} />
+        <Route path="/dashboard/transport/bus"     element={iamPage(["bus.read"], <BusPage />)} />
+        <Route path="/dashboard/transport/lignes"  element={iamPage(["ligne.read"], <LignesPage />)} />
+        <Route path="/dashboard/transport/trajets" element={iamPage(["trajet.read"], <TrajetsPage />)} />
+        <Route path="/dashboard/transport/tarifs"  element={iamPage(["tarif.read"], <TarifsPage />)} />
+        <Route path="/dashboard/transport/routes"  element={<Navigate to="/dashboard/transport/lignes" replace />} />
+        <Route path="/dashboard/transport/tickets" element={iamPage(["billet.read"], <TicketsPage />)} />
+        <Route path="/dashboard/rh/employees"      element={iamPage(["employe.read"], <EmployeesPage />)} />
+        <Route path="/dashboard/rh/teams"          element={iamPage(["employe.read"], <ComingSoonPage title="Équipes" />)} />
+        <Route path="/dashboard/finances/payments"  element={iamPage(["paiement.read"], <PaymentsPage />)} />
+        <Route path="/dashboard/finances/reports"   element={iamPage(["rapport.read", "paiement.read"], <ReportsPage />)} />
+        <Route path="/dashboard/support/tickets"    element={iamPage(["sav.read"], <SupportTicketsPage />)} />
 
         <Route
           path="/admin"

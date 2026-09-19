@@ -63,7 +63,7 @@ class TicketCard extends StatelessWidget {
                 color: _getStatusColor().withValues(alpha: 0.3),
                 width: 1.5,
               ),
-              color: AppColors.white,
+              color: AppColors.surface,
             ),
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
@@ -222,3 +222,4 @@ class TicketCard extends StatelessWidget {
     );
   }
 }
+

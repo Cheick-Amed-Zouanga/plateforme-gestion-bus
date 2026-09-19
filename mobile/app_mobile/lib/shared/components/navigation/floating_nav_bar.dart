@@ -48,7 +48,7 @@ class _FloatingNavBarState extends State<FloatingNavBar> {
       elevation: AppSpacing.elevationXL,
       shadowColor: AppColors.navy.withValues(alpha: 0.18),
       borderRadius: BorderRadius.circular(AppSpacing.radiusRound),
-      color: widget.backgroundColor ?? AppColors.white,
+      color: widget.backgroundColor ?? AppColors.surface,
       child: Container(
         height: AppSpacing.navBarHeight,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),

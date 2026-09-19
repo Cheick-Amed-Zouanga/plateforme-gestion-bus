@@ -17,8 +17,10 @@ export default function DashboardHome() {
     localStorage.removeItem("access_token")
     localStorage.removeItem("refresh_token")
     localStorage.removeItem("user")
+    localStorage.removeItem("username")
     localStorage.removeItem("company")
     localStorage.removeItem("is_super_admin")
+    localStorage.removeItem("permissions")
     navigate("/login", { replace: true })
   }
 

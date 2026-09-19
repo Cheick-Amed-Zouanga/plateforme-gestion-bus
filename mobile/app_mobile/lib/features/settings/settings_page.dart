@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../help/help_page.dart';
 import '../profile/profile_page.dart';
+import '../sav/my_sav_tickets_page.dart';
 
 class SettingsPage extends StatelessWidget {
   final bool isGuest;
   final String? username;
   final VoidCallback onChanged;
+  final VoidCallback? onNeedAuth;
 
   const SettingsPage({
     super.key,
     required this.isGuest,
     required this.username,
     required this.onChanged,
+    this.onNeedAuth,
   });
 
   @override
@@ -50,6 +53,28 @@ class SettingsPage extends StatelessWidget {
                     isGuest: isGuest,
                     username: username,
                     onChanged: onChanged,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        _SettingsTile(
+          icon: Icons.support_agent_rounded,
+          title: 'Support SAV',
+          subtitle: 'Tickets et conversation en direct avec le SAV',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => Scaffold(
+                  appBar: AppBar(title: const Text('Support SAV')),
+                  body: MySavTicketsPage(
+                    isGuest: isGuest,
+                    onNeedAuth: () {
+                      Navigator.pop(context);
+                      (onNeedAuth ?? () {})();
+                    },
                   ),
                 ),
               ),

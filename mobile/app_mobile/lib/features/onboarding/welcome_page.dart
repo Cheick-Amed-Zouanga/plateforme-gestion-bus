@@ -14,7 +14,7 @@ class WelcomePage extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.navy, AppColors.primaryBlue],
+            colors: [AppColors.background, AppColors.surface],
           ),
         ),
         child: SafeArea(
@@ -45,8 +45,8 @@ class WelcomePage extends StatelessWidget {
                 const Spacer(),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primaryBlue,
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: AppColors.ink,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -86,3 +86,4 @@ class WelcomePage extends StatelessWidget {
     );
   }
 }
+

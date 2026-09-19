@@ -24,6 +24,7 @@ export 'misc/empty_state.dart';
 export 'misc/error_widget.dart';
 export 'misc/status_badge.dart';
 export 'misc/success_banner.dart';
+export 'misc/bus_seat_plan.dart';
 
 // Layouts
 export 'layouts/page_layout.dart';

@@ -244,7 +244,7 @@ class PriceBreakdownCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         border: Border.all(color: AppColors.borderGrey),
       ),
@@ -339,3 +339,4 @@ class PriceBreakdownCard extends StatelessWidget {
     );
   }
 }
+

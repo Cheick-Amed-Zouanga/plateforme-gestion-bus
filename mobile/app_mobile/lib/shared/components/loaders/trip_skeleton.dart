@@ -35,7 +35,7 @@ class _TripSkeletonCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
           border: Border.all(color: AppColors.borderGrey),
-          color: AppColors.white,
+          color: AppColors.surface,
         ),
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
@@ -141,7 +141,7 @@ class _TicketSkeletonCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
           border: Border.all(color: AppColors.borderGrey),
-          color: AppColors.white,
+          color: AppColors.surface,
         ),
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
@@ -217,7 +217,7 @@ class SearchFormSkeleton extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         border: Border.all(color: AppColors.borderGrey),
       ),
@@ -257,3 +257,4 @@ class _SkeletonBox extends StatelessWidget {
     );
   }
 }
+

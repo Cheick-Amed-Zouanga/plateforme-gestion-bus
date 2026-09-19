@@ -56,6 +56,7 @@ class _HomeShellState extends State<HomeShell> {
           isGuest: _isGuest,
           username: _username,
           onChanged: _loadSession,
+          onNeedAuth: _askAuth,
         );
       default:
         return HomePage(
@@ -87,8 +88,12 @@ class _HomeShellState extends State<HomeShell> {
         actions: [
           if (_isGuest)
             TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/login'),
-              child: const Text('Connexion', style: TextStyle(color: Colors.white)),
+              onPressed: () async {
+                await Navigator.pushNamed(context, '/login');
+                if (!mounted) return;
+                await _loadSession();
+              },
+              child: const Text('Connexion'),
             ),
         ],
       ),
@@ -132,9 +137,9 @@ class _FloatingBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       elevation: 16,
-      shadowColor: AppColors.navy.withValues(alpha: 0.18),
+      shadowColor: Colors.black.withValues(alpha: 0.18),
       borderRadius: BorderRadius.circular(24),
-      color: Colors.white,
+      color: AppColors.surface,
       child: Container(
         height: 68,
         padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -200,3 +205,4 @@ class _FloatingBottomNav extends StatelessWidget {
     );
   }
 }
+

@@ -110,7 +110,7 @@ class _AppTextFieldState extends State<AppTextField> {
               )
             : null,
         filled: true,
-        fillColor: AppColors.white,
+        fillColor: AppColors.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.md,
@@ -159,3 +159,4 @@ class _AppTextFieldState extends State<AppTextField> {
     );
   }
 }
+

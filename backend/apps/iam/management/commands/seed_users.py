@@ -68,25 +68,49 @@ class Command(BaseCommand):
                 'slug': 'dakar-transport',
                 'name': 'Dakar Transport Co.',
                 'email': 'contact@dakar-transport.com',
-                'phone': '+221 33 123 4567',
-                'address': '123 Avenue Cheikh Anta Diop, Dakar',
+                'phone': '+226 25 30 11 11',
+                'address': 'Avenue Kwame Nkrumah, Ouagadougou',
                 'subscription': 'pro',
             },
             {
                 'slug': 'senegal-express',
                 'name': 'Senegal Express',
                 'email': 'contact@senegal-express.com',
-                'phone': '+221 33 234 5678',
-                'address': '456 Boulevard de la Mer, Dakar',
+                'phone': '+226 25 30 22 22',
+                'address': 'Secteur 4, Ouagadougou',
                 'subscription': 'enterprise',
             },
             {
                 'slug': 'ndiaye-voyages',
                 'name': 'Ndiaye Voyages',
                 'email': 'contact@ndiaye-voyages.com',
-                'phone': '+221 33 345 6789',
-                'address': '789 Rue de Thiès, Thiès',
+                'phone': '+226 20 97 33 33',
+                'address': 'Avenue de la Révolution, Bobo-Dioulasso',
                 'subscription': 'pro',
+            },
+            {
+                'slug': 'rakieta',
+                'name': 'Rakieta Transport',
+                'email': 'contact@rakieta.bf',
+                'phone': '+226 25 36 44 44',
+                'address': 'Gare routière, Ouagadougou',
+                'subscription': 'enterprise',
+            },
+            {
+                'slug': 'tsr-voyageurs',
+                'name': 'TSR Voyageurs',
+                'email': 'contact@tsr.bf',
+                'phone': '+226 25 37 55 55',
+                'address': 'Zone du Bois, Ouagadougou',
+                'subscription': 'pro',
+            },
+            {
+                'slug': 'staf-express',
+                'name': 'STAF Express',
+                'email': 'contact@staf.bf',
+                'phone': '+226 20 98 66 66',
+                'address': 'Colma, Bobo-Dioulasso',
+                'subscription': 'free',
             },
         ]
 
@@ -107,31 +131,47 @@ class Command(BaseCommand):
         # ==================== GARES PAR COMPAGNIE ====================
         self.stdout.write('🏁 Creating gares (ticket points)...\n')
 
-        for slug, company in companies.items():
-            gares_data = [
-                {
-                    'name': f'{company.name} - Dakar Central',
-                    'city': 'Dakar',
-                    'address': '123 Rue de l\'Indépendance, Dakar',
-                    'phone': '+221 33 111 1111',
-                },
-                {
-                    'name': f'{company.name} - Thiès',
-                    'city': 'Thiès',
-                    'address': '456 Avenue Ould Daddah, Thiès',
-                    'phone': '+221 77 222 2222',
-                },
-            ]
+        # Gares Burkina par compagnie (points de vente)
+        gares_par_slug = {
+            'dakar-transport': [
+                ('Ouagadougou Central', 'Ouagadougou', 'Gare routière Ouaga'),
+                ('Bobo Terminal', 'Bobo-Dioulasso', 'Gare routière Bobo'),
+            ],
+            'senegal-express': [
+                ('Ouaga Express', 'Ouagadougou', 'Avenue de la Nation'),
+                ('Koudougou Gare', 'Koudougou', 'Centre-ville Koudougou'),
+            ],
+            'ndiaye-voyages': [
+                ('Bobo Ndiaye', 'Bobo-Dioulasso', 'Avenue de la Révolution'),
+                ('Banfora Escale', 'Banfora', 'Route de Bobo'),
+            ],
+            'rakieta': [
+                ('Rakieta Ouaga', 'Ouagadougou', 'Gare routière'),
+                ('Rakieta Bobo', 'Bobo-Dioulasso', 'Gare routière'),
+                ('Rakieta Ouahi', 'Ouahigouya', 'Centre-ville'),
+            ],
+            'tsr-voyageurs': [
+                ('TSR Ouaga', 'Ouagadougou', 'Zone du Bois'),
+                ('TSR Fada', "Fada N'Gourma", 'Gare routière'),
+                ('TSR Tenkodogo', 'Tenkodogo', 'Centre'),
+            ],
+            'staf-express': [
+                ('STAF Bobo', 'Bobo-Dioulasso', 'Colma'),
+                ('STAF Banfora', 'Banfora', 'Gare'),
+                ('STAF Ouaga', 'Ouagadougou', 'Dassasgho'),
+            ],
+        }
 
-            for gare_data in gares_data:
+        for slug, company in companies.items():
+            for name, city, address in gares_par_slug.get(slug, []):
                 gare, created = Gare.objects.get_or_create(
                     company=company,
-                    name=gare_data['name'],
+                    name=f'{company.name} - {name}',
                     defaults={
-                        'city': gare_data['city'],
-                        'address': gare_data['address'],
-                        'phone': gare_data['phone'],
-                    }
+                        'city': city,
+                        'address': address,
+                        'phone': company.phone or '',
+                    },
                 )
                 if created:
                     self.stdout.write(f'  ✓ {company.name}: {gare.name}')

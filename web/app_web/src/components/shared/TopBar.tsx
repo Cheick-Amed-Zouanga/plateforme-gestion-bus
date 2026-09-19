@@ -11,20 +11,24 @@ import {
 
 export interface TopBarProps {
   userEmail?: string
+  userLabel?: string
   selectedGare?: string
   gares?: Array<{ id: string; name: string; city: string }>
   onGareChange?: (gareId: string) => void
   onToggleSidebar?: () => void
   notifications?: number
+  sidebarCollapsed?: boolean
 }
 
 export function TopBar({
   userEmail = 'user@company.com',
+  userLabel = 'Utilisateur',
   selectedGare,
   gares = [],
   onGareChange,
   onToggleSidebar,
   notifications = 0,
+  sidebarCollapsed = false,
 }: TopBarProps) {
   const [showGareMenu, setShowGareMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -32,7 +36,12 @@ export function TopBar({
   const currentGare = gares.find(g => g.id === selectedGare)
 
   return (
-    <div className="fixed top-0 left-64 right-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-40 transition-all duration-300">
+    <div
+      className={cn(
+        'fixed top-0 right-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-40 transition-all duration-300',
+        sidebarCollapsed ? 'left-20' : 'left-64'
+      )}
+    >
       {/* Left: Menu Toggle + Gare Selector */}
       <div className="flex items-center gap-4">
         <button
@@ -113,11 +122,11 @@ export function TopBar({
             <div className="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-sm font-semibold">
               {userEmail.charAt(0).toUpperCase()}
             </div>
-            <div className="text-left hidden sm:block">
+              <div className="text-left hidden sm:block">
               <div className="text-sm font-medium text-slate-900">
                 {userEmail.split('@')[0]}
               </div>
-              <div className="text-xs text-slate-500">Admin</div>
+              <div className="text-xs text-slate-500">{userLabel}</div>
             </div>
             <ChevronDown className="w-4 h-4 text-slate-500" />
           </button>
@@ -126,7 +135,7 @@ export function TopBar({
             <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
               <div className="p-4 border-b border-slate-200">
                 <div className="text-sm font-medium text-slate-900">{userEmail}</div>
-                <div className="text-xs text-slate-500">Administrateur</div>
+                <div className="text-xs text-slate-500">{userLabel}</div>
               </div>
               <div className="p-2 space-y-1">
                 <button className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors text-sm text-slate-700">

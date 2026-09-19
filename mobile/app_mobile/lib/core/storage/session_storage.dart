@@ -11,7 +11,9 @@ class SessionStorage {
   static const _onboardingKey = 'onboarding_done';
   static const _guestKey = 'is_guest';
 
-  final FlutterSecureStorage _secure = const FlutterSecureStorage();
+  final FlutterSecureStorage _secure = const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
   Future<bool> isOnboardingDone() async {
     final prefs = await SharedPreferences.getInstance();

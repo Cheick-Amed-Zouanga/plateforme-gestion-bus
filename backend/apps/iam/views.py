@@ -37,6 +37,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data['company'] = CompanySerializer(user.company).data if user.company else None
         data['is_super_admin'] = user.is_superuser and user.company_id is None
         data['role'] = user.get_primary_role()
+        data['permissions'] = [p.name for p in user.get_permissions()]
         return data
 
 
@@ -412,7 +413,20 @@ class CompanyViewSet(viewsets.ModelViewSet):
                 {'detail': 'Seul le Super Admin peut supprimer une compagnie.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        return super().destroy(request, *args, **kwargs)
+        instance = self.get_object()
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except models.ProtectedError:
+            return Response(
+                {
+                    'message': (
+                        f'Impossible de supprimer « {instance.name} » : '
+                        'des employés, gares ou trajets y sont encore liés. '
+                        'Désactivez-la plutôt (is_active=false).'
+                    )
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
 
     @action(detail=False, methods=['get'])
     def me(self, request):
@@ -454,8 +468,23 @@ class GareViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        data = request.data.copy()
-        data['company'] = str(request.user.company_id)
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+
+        # Super Admin peut provisionner une gare pour un tenant explicite
+        if request.user.is_superuser and request.user.company_id is None:
+            company_id = data.get('company')
+            if not company_id:
+                return Response(
+                    {'detail': 'Indiquez "company" (UUID du tenant) pour créer une gare.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            if not request.user.company_id:
+                return Response(
+                    {'detail': 'Aucune compagnie associée à cet utilisateur.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            data['company'] = str(request.user.company_id)
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -463,7 +492,7 @@ class GareViewSet(viewsets.ModelViewSet):
 
         AuditLog.objects.create(
             user=request.user,
-            company=request.user.company,
+            company=serializer.instance.company,
             action='create',
             resource_type='Gare',
             resource_id=serializer.instance.id,
@@ -474,6 +503,22 @@ class GareViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    def update(self, request, *args, **kwargs):
+        if not request.user.has_permission('gare.update'):
+            return Response(
+                {'detail': 'Permission "gare.update" required'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.has_permission('gare.delete'):
+            return Response(
+                {'detail': 'Permission "gare.delete" required'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().destroy(request, *args, **kwargs)
+
     def perform_update(self, serializer):
         """Update avec audit log"""
         old_data = GareSerializer(serializer.instance).data
@@ -482,7 +527,7 @@ class GareViewSet(viewsets.ModelViewSet):
 
         AuditLog.objects.create(
             user=self.request.user,
-            company=self.request.user.company,
+            company=serializer.instance.company,
             action='update',
             resource_type='Gare',
             resource_id=serializer.instance.id,
@@ -495,14 +540,16 @@ class GareViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         """Delete avec audit log"""
         name = instance.name
+        company = instance.company
+        resource_id = instance.id
         instance.delete()
 
         AuditLog.objects.create(
             user=self.request.user,
-            company=self.request.user.company,
+            company=company,
             action='delete',
             resource_type='Gare',
-            resource_id=instance.id,
+            resource_id=resource_id,
             resource_name=name,
             description=f'Deleted gare {name}'
         )
