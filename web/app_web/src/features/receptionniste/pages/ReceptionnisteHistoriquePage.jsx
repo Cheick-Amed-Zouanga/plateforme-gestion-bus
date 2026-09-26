@@ -14,9 +14,9 @@ const JOURS_OPTS = [
 const SOURCE_LABEL = { APP: "En ligne", GUICHET: "Guichet" };
 
 const STATUT_PAIEMENT_COLORS = {
-  PAYE:       { color: "#56D364", bg: "#1B3A2D" },
+  PAYE:       { color: "#26C2A1", bg: "#1B3A2D" },
   EN_ATTENTE: { color: "#F0883E", bg: "#2D1A0A" },
-  REMBOURSE:  { color: "#6E7681", bg: "#21262D" },
+  REMBOURSE:  { color: "#6B7280", bg: "#EEF2F7" },
 };
 
 function fmtDate(dt) {
@@ -62,7 +62,7 @@ export default function ReceptionnisteHistoriquePage() {
 
         <div style={st.statsRow}>
           <StatChip label="Billets vendus" value={totalBillets} color="#58A6FF" />
-          <StatChip label="Encaissement total" value={`${totalRecettes.toLocaleString("fr-FR")} XOF`} color="#56D364" small />
+          <StatChip label="Encaissement total" value={`${totalRecettes.toLocaleString("fr-FR")} XOF`} color="#26C2A1" small />
         </div>
 
         <div style={st.card}>
@@ -94,29 +94,29 @@ export default function ReceptionnisteHistoriquePage() {
                           </button>
                         </td>
                         <td style={st.td}>
-                          <span style={{ color: "#E6EDF3", fontWeight: "600", display: "block" }}>{b.passager}</span>
+                          <span style={{ color: "#1A1348", fontWeight: "600", display: "block" }}>{b.passager}</span>
                           {b.passager_telephone && (
-                            <span style={{ fontSize: "11px", color: "#6E7681" }}>{b.passager_telephone}</span>
+                            <span style={{ fontSize: "11px", color: "#6B7280" }}>{b.passager_telephone}</span>
                           )}
                         </td>
                         <td style={st.td}>
-                          <div style={{ fontSize: "12px", color: "#E6EDF3" }}>{b.ligne_display}</div>
+                          <div style={{ fontSize: "12px", color: "#1A1348" }}>{b.ligne_display}</div>
                           <div style={{ fontSize: "11px", color: "#79C0FF" }}>
                             {b.arret_depart_ville} → {b.arret_arrivee_ville}
                           </div>
-                          <div style={{ fontSize: "11px", color: "#6E7681" }}>{fmtDate(b.depart_prevu)}</div>
+                          <div style={{ fontSize: "11px", color: "#6B7280" }}>{fmtDate(b.depart_prevu)}</div>
                         </td>
                         <td style={st.td}>
                           <span style={st.seatBadge}>{b.siege_numero ?? "—"}</span>
                         </td>
                         <td style={st.td}>
-                          <span style={{ fontSize: "11px", backgroundColor: "#21262D", color: "#8B949E", padding: "2px 8px", borderRadius: "4px" }}>
+                          <span style={{ fontSize: "11px", backgroundColor: "#EEF2F7", color: "#6B7280", padding: "2px 8px", borderRadius: "4px" }}>
                             {SOURCE_LABEL[b.source] ?? b.source}
                           </span>
                         </td>
                         <td style={st.td}>
-                          <span style={{ fontWeight: "700", color: "#E6EDF3" }}>{b.prix?.toLocaleString("fr-FR")}</span>
-                          <span style={{ color: "#6E7681", fontSize: "11px", marginLeft: "4px" }}>{b.devise}</span>
+                          <span style={{ fontWeight: "700", color: "#1A1348" }}>{b.prix?.toLocaleString("fr-FR")}</span>
+                          <span style={{ color: "#6B7280", fontSize: "11px", marginLeft: "4px" }}>{b.devise}</span>
                         </td>
                         <td style={st.td}>
                           <span style={{ padding: "2px 8px", borderRadius: "20px", fontSize: "11px", fontWeight: "600", backgroundColor: sp.bg, color: sp.color }}>
@@ -124,7 +124,7 @@ export default function ReceptionnisteHistoriquePage() {
                           </span>
                         </td>
                         <td style={st.td}>
-                          <span style={{ fontSize: "12px", color: "#6E7681" }}>
+                          <span style={{ fontSize: "12px", color: "#6B7280" }}>
                             {b.emis_le ? new Date(b.emis_le).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—"}
                           </span>
                         </td>
@@ -143,27 +143,27 @@ export default function ReceptionnisteHistoriquePage() {
 
 function StatChip({ label, value, color, small }) {
   return (
-    <div style={{ backgroundColor: "#161B22", borderRadius: "10px", padding: "16px 20px", borderTop: `3px solid ${color}`, flex: "1 1 200px" }}>
-      <div style={{ fontSize: "11px", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
+    <div style={{ backgroundColor: "#FFFFFF", borderRadius: "10px", padding: "16px 20px", borderTop: `3px solid ${color}`, flex: "1 1 200px" }}>
+      <div style={{ fontSize: "11px", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
       <div style={{ fontSize: small ? "16px" : "26px", fontWeight: "800", color, marginTop: "4px" }}>{value}</div>
     </div>
   );
 }
 
 const st = {
-  page:       { minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" },
+  page:       { minHeight: "100vh", backgroundColor: "#F5F7FA", fontFamily: "'Poppins', 'Segoe UI', sans-serif" },
   main:       { maxWidth: "1200px", margin: "0 auto", padding: "28px 20px 48px", display: "flex", flexDirection: "column", gap: "16px" },
-  btnBack:    { alignSelf: "flex-start", padding: "8px 16px", fontSize: "13px", fontWeight: "600", color: "#8B949E", backgroundColor: "transparent", border: "1.5px solid #30363D", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit" },
+  btnBack:    { alignSelf: "flex-start", padding: "8px 16px", fontSize: "13px", fontWeight: "600", color: "#6B7280", backgroundColor: "transparent", border: "1.5px solid #E5E7EB", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit" },
   toolbar:    { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" },
-  heading:    { fontSize: "18px", fontWeight: "700", color: "#E6EDF3", margin: 0 },
-  selectJours:{ padding: "7px 12px", backgroundColor: "#161B22", border: "1px solid #30363D", borderRadius: "8px", color: "#E6EDF3", fontSize: "13px", fontFamily: "inherit", cursor: "pointer" },
+  heading:    { fontSize: "18px", fontWeight: "700", color: "#1A1348", margin: 0 },
+  selectJours:{ padding: "7px 12px", backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "8px", color: "#1A1348", fontSize: "13px", fontFamily: "inherit", cursor: "pointer" },
   statsRow:   { display: "flex", flexWrap: "wrap", gap: "12px" },
-  card:       { backgroundColor: "#161B22", borderRadius: "12px", padding: "22px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
+  card:       { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "22px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
   table:      { width: "100%", borderCollapse: "collapse", minWidth: "900px" },
-  th:         { padding: "10px 12px", textAlign: "left", fontSize: "11px", fontWeight: "700", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px", borderBottom: "1px solid #21262D" },
-  tr:         { borderBottom: "1px solid #21262D" },
+  th:         { padding: "10px 12px", textAlign: "left", fontSize: "11px", fontWeight: "700", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px", borderBottom: "1px solid #EEF2F7" },
+  tr:         { borderBottom: "1px solid #EEF2F7" },
   td:         { padding: "11px 12px", fontSize: "13px", color: "#C9D1D9", verticalAlign: "top" },
-  seatBadge:  { backgroundColor: "#21262D", color: "#E6EDF3", padding: "2px 8px", borderRadius: "6px", fontSize: "12px", fontWeight: "700", fontFamily: "monospace" },
-  muted:      { color: "#6E7681", fontSize: "13px", margin: 0 },
+  seatBadge:  { backgroundColor: "#EEF2F7", color: "#1A1348", padding: "2px 8px", borderRadius: "6px", fontSize: "12px", fontWeight: "700", fontFamily: "monospace" },
+  muted:      { color: "#6B7280", fontSize: "13px", margin: 0 },
   linkBtn:    { background: "none", border: "none", color: "#79C0FF", fontFamily: "monospace", fontSize: "12px", cursor: "pointer", padding: 0, textDecoration: "underline" },
 };

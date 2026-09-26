@@ -5,15 +5,15 @@ import SubHeader from "../../../components/SubHeader";
 import apiFetch from "../../../shared/services/api";
 
 const STATUT_PAIEMENT = {
-  PAYE:       { label: "Payé",       color: "#56D364", bg: "#1B3A2D" },
+  PAYE:       { label: "Payé",       color: "#26C2A1", bg: "#1B3A2D" },
   EN_ATTENTE: { label: "En attente", color: "#F0883E", bg: "#2D1A0A" },
-  REMBOURSE:  { label: "Remboursé",  color: "#6E7681", bg: "#21262D" },
+  REMBOURSE:  { label: "Remboursé",  color: "#6B7280", bg: "#EEF2F7" },
 };
 
 const STATUT_BILLET = {
-  CONFIRME: { label: "Confirmé", color: "#56D364", bg: "#1B3A2D" },
+  CONFIRME: { label: "Confirmé", color: "#26C2A1", bg: "#1B3A2D" },
   UTILISE:  { label: "Utilisé",  color: "#58A6FF", bg: "#1B2A3B" },
-  ANNULE:   { label: "Annulé",   color: "#FF7B72", bg: "#2D1117" },
+  ANNULE:   { label: "Annulé",   color: "#E11D48", bg: "#2D1117" },
 };
 
 export default function ReceptionnisteDetailBilletPage() {
@@ -92,14 +92,14 @@ export default function ReceptionnisteDetailBilletPage() {
       <SubHeader title="Détail billet" backPath="/receptionniste/recherche" />
       <main style={st.main}>
 
-        {actionMsg && <div style={{ padding: "10px 14px", borderRadius: "8px", fontSize: "13px", backgroundColor: "#1B3A2D", color: "#56D364", border: "1px solid #56D36433" }}>{actionMsg}</div>}
+        {actionMsg && <div style={{ padding: "10px 14px", borderRadius: "8px", fontSize: "13px", backgroundColor: "#1B3A2D", color: "#26C2A1", border: "1px solid #26C2A133" }}>{actionMsg}</div>}
 
         <div style={st.card}>
           {/* En-tête compagnie */}
           {billet.nom_compagnie && (
-            <div style={{ textAlign: "center", padding: "10px 0 12px", borderBottom: "1px solid #21262D", marginBottom: "14px" }}>
-              <div style={{ fontSize: "18px", fontWeight: "900", letterSpacing: "3px", color: "#E6EDF3", textTransform: "uppercase" }}>{billet.nom_compagnie}</div>
-              <div style={{ fontSize: "10px", color: "#6E7681", textTransform: "uppercase", letterSpacing: "1.5px", marginTop: "2px" }}>Billet de voyage officiel</div>
+            <div style={{ textAlign: "center", padding: "10px 0 12px", borderBottom: "1px solid #EEF2F7", marginBottom: "14px" }}>
+              <div style={{ fontSize: "18px", fontWeight: "900", letterSpacing: "3px", color: "#1A1348", textTransform: "uppercase" }}>{billet.nom_compagnie}</div>
+              <div style={{ fontSize: "10px", color: "#6B7280", textTransform: "uppercase", letterSpacing: "1.5px", marginTop: "2px" }}>Billet de voyage officiel</div>
             </div>
           )}
 
@@ -171,13 +171,13 @@ export default function ReceptionnisteDetailBilletPage() {
           <button style={st.btnSecondary} onClick={() => navigate(-1)}>← Retour</button>
           <button style={st.btnPrint} onClick={() => imprimerBillet(billet)}>🖨 Imprimer</button>
           {billet.statut_paiement === "EN_ATTENTE" && billet.statut_billet === "CONFIRME" && (
-            <button style={{ ...st.btnAction, color: "#56D364", borderColor: "#56D364" }}
+            <button style={{ ...st.btnAction, color: "#26C2A1", borderColor: "#26C2A1" }}
               onClick={confirmerPaiement} disabled={confirming}>
               {confirming ? "…" : "Confirmer paiement"}
             </button>
           )}
           {billet.statut_billet === "CONFIRME" && (
-            <button style={{ ...st.btnAction, color: "#FF7B72", borderColor: "#FF7B72" }}
+            <button style={{ ...st.btnAction, color: "#E11D48", borderColor: "#E11D48" }}
               onClick={annuler} disabled={annuling}>
               {annuling ? "…" : "Annuler le billet"}
             </button>
@@ -207,13 +207,13 @@ function imprimerBillet(billet) {
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#000;padding:20px}
   .ticket{max-width:440px;margin:0 auto;border:2px solid #222;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15)}
-  .hdr{background:#0D1117;color:#fff;padding:16px 22px 14px;text-align:center}
+  .hdr{background:#F5F7FA;color:#fff;padding:16px 22px 14px;text-align:center}
   .co{font-size:24px;font-weight:900;letter-spacing:4px;text-transform:uppercase}
-  .sub{font-size:10px;color:#8B949E;text-transform:uppercase;letter-spacing:1.5px;margin-top:3px}
+  .sub{font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:1.5px;margin-top:3px}
   .num{font-size:12px;font-family:monospace;color:#58A6FF;margin-top:6px;background:rgba(255,255,255,.06);display:inline-block;padding:2px 10px;border-radius:4px}
-  .route{background:#f5f5f5;padding:12px 22px;text-align:center;border-top:3px solid #009A44}
+  .route{background:#f5f5f5;padding:12px 22px;text-align:center;border-top:3px solid #26C2A1}
   .cities{font-size:22px;font-weight:900;color:#000;letter-spacing:1px}
-  .arrow{color:#009A44;margin:0 10px}
+  .arrow{color:#26C2A1;margin:0 10px}
   .rdate{font-size:12px;color:#555;margin-top:3px}
   .body{padding:14px 22px}
   .st-title{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:#999;font-weight:700;margin:12px 0 8px;border-bottom:1px solid #eee;padding-bottom:4px}
@@ -222,7 +222,7 @@ function imprimerBillet(billet) {
   .fv{font-size:13px;font-weight:700;color:#111;margin-top:1px}
   .price-row{display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px;padding:10px 14px;background:#f9f9f9;border-radius:8px}
   .plabel{font-size:12px;color:#555}
-  .pvalue{font-size:24px;font-weight:900;color:#009A44}
+  .pvalue{font-size:24px;font-weight:900;color:#26C2A1}
   .st-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
   .st-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:${statutBg};color:${statutColor}}
   .src-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:10px;font-weight:600;background:#f0f0f0;color:#555}
@@ -298,27 +298,27 @@ function Badge({ color, bg, label }) {
 function Field({ label, value }) {
   return (
     <div>
-      <div style={{ fontSize: "10px", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
-      <div style={{ fontSize: "14px", color: "#E6EDF3", fontWeight: "600", marginTop: "2px" }}>{value ?? "—"}</div>
+      <div style={{ fontSize: "10px", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
+      <div style={{ fontSize: "14px", color: "#1A1348", fontWeight: "600", marginTop: "2px" }}>{value ?? "—"}</div>
     </div>
   );
 }
 
 const st = {
-  page:        { minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" },
+  page:        { minHeight: "100vh", backgroundColor: "#F5F7FA", fontFamily: "'Poppins', 'Segoe UI', sans-serif" },
   main:        { maxWidth: "680px", margin: "0 auto", padding: "28px 20px 48px", display: "flex", flexDirection: "column", gap: "16px" },
-  card:        { backgroundColor: "#161B22", borderRadius: "12px", padding: "24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
-  billetHeader:{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px", marginBottom: "20px", paddingBottom: "16px", borderBottom: "1px solid #21262D" },
-  numBillet:   { display: "block", fontSize: "20px", fontWeight: "800", color: "#E6EDF3", fontFamily: "monospace", marginBottom: "6px" },
-  sourceTag:   { fontSize: "11px", color: "#8B949E", backgroundColor: "#21262D", padding: "2px 8px", borderRadius: "4px" },
+  card:        { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
+  billetHeader:{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px", marginBottom: "20px", paddingBottom: "16px", borderBottom: "1px solid #EEF2F7" },
+  numBillet:   { display: "block", fontSize: "20px", fontWeight: "800", color: "#1A1348", fontFamily: "monospace", marginBottom: "6px" },
+  sourceTag:   { fontSize: "11px", color: "#6B7280", backgroundColor: "#EEF2F7", padding: "2px 8px", borderRadius: "4px" },
   section:     { marginBottom: "20px" },
-  sectionTitle:{ fontSize: "11px", fontWeight: "700", color: "#8B949E", textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 12px", paddingBottom: "6px", borderBottom: "1px solid #21262D" },
+  sectionTitle:{ fontSize: "11px", fontWeight: "700", color: "#6B7280", textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 12px", paddingBottom: "6px", borderBottom: "1px solid #EEF2F7" },
   grid:        { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" },
   actions:     { display: "flex", gap: "10px", flexWrap: "wrap" },
-  btnSecondary:{ padding: "10px 20px", backgroundColor: "transparent", color: "#8B949E", border: "1px solid #30363D", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
+  btnSecondary:{ padding: "10px 20px", backgroundColor: "transparent", color: "#6B7280", border: "1px solid #E5E7EB", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
   btnPrint:    { padding: "10px 20px", backgroundColor: "#1B2A3B", color: "#58A6FF", border: "1px solid #58A6FF44", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
   btnAction:   { padding: "10px 20px", backgroundColor: "transparent", border: "1.5px solid", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
-  errBox:      { padding: "12px 16px", backgroundColor: "#2D1117", color: "#FF7B72", borderRadius: "8px", fontSize: "13px" },
-  btnBack:     { padding: "10px 20px", backgroundColor: "transparent", color: "#8B949E", border: "1px solid #30363D", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
-  muted:       { color: "#6E7681", fontSize: "13px", margin: 0 },
+  errBox:      { padding: "12px 16px", backgroundColor: "#2D1117", color: "#E11D48", borderRadius: "8px", fontSize: "13px" },
+  btnBack:     { padding: "10px 20px", backgroundColor: "transparent", color: "#6B7280", border: "1px solid #E5E7EB", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
+  muted:       { color: "#6B7280", fontSize: "13px", margin: 0 },
 };

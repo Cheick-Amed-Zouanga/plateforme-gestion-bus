@@ -14,8 +14,8 @@ const TYPE_INCIDENT = [
 const TYPE_COLOR = {
   PASSAGER_SANS_BILLET: "#F0883E",
   CONFLIT_SIEGE:        "#E67E22",
-  PROBLEME_BUS:         "#FF7B72",
-  AUTRE:                "#8B949E",
+  PROBLEME_BUS:         "#E11D48",
+  AUTRE:                "#6B7280",
 };
 
 export default function ControleurIncidentsPage() {
@@ -101,7 +101,7 @@ export default function ControleurIncidentsPage() {
         {/* Liste incidents */}
         {loading ? <p style={st.muted}>Chargement…</p> : incidents.length === 0 ? (
           <div style={st.emptyCard}>
-            <p style={{ color: "#6E7681", margin: 0, fontSize: "14px" }}>Aucun incident signalé pour ce trajet.</p>
+            <p style={{ color: "#6B7280", margin: 0, fontSize: "14px" }}>Aucun incident signalé pour ce trajet.</p>
           </div>
         ) : (
           <div style={st.incidentsList}>
@@ -134,7 +134,7 @@ function IncidentCard({ incident, onRefresh }) {
   };
 
   const typeInfo = TYPE_INCIDENT.find(t => t.value === incident.type_incident);
-  const color = TYPE_COLOR[incident.type_incident] ?? "#8B949E";
+  const color = TYPE_COLOR[incident.type_incident] ?? "#6B7280";
   const date = incident.date_incident ? new Date(incident.date_incident).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "";
 
   return (
@@ -144,14 +144,14 @@ function IncidentCard({ incident, onRefresh }) {
           <span style={{ ...st.typeBadge, backgroundColor: color + "22", color }}>{typeInfo?.label ?? incident.type_incident}</span>
           {incident.resolu && <span style={st.resolvedBadge}>Résolu</span>}
         </div>
-        <span style={{ fontSize: "12px", color: "#6E7681" }}>{date}</span>
+        <span style={{ fontSize: "12px", color: "#6B7280" }}>{date}</span>
       </div>
 
       <p style={st.description}>{incident.description}</p>
 
       {incident.resolution && (
         <div style={st.resolutionBox}>
-          <span style={{ fontSize: "11px", color: "#56D364", fontWeight: "700", textTransform: "uppercase" }}>Résolution : </span>
+          <span style={{ fontSize: "11px", color: "#26C2A1", fontWeight: "700", textTransform: "uppercase" }}>Résolution : </span>
           <span style={{ fontSize: "13px", color: "#C9D1D9" }}>{incident.resolution}</span>
         </div>
       )}
@@ -184,28 +184,28 @@ function IncidentCard({ incident, onRefresh }) {
 }
 
 const st = {
-  page:          { minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" },
+  page:          { minHeight: "100vh", backgroundColor: "#F5F7FA", fontFamily: "'Poppins', 'Segoe UI', sans-serif" },
   main:          { maxWidth: "700px", margin: "0 auto", padding: "28px 20px 48px", display: "flex", flexDirection: "column", gap: "14px" },
   topRow:        { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  pageTitle:     { fontSize: "16px", fontWeight: "700", color: "#E6EDF3", margin: 0 },
+  pageTitle:     { fontSize: "16px", fontWeight: "700", color: "#1A1348", margin: 0 },
   btnSignaler:   { padding: "9px 18px", backgroundColor: "#2D1A0A", color: "#F0883E", border: "1px solid #F0883E", borderRadius: "8px", fontSize: "13px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
-  formCard:      { backgroundColor: "#161B22", borderRadius: "12px", padding: "20px 22px", border: "1px solid #F0883E33" },
-  formTitle:     { fontSize: "14px", fontWeight: "700", color: "#E6EDF3", margin: "0 0 14px" },
-  label:         { display: "block", fontSize: "12px", color: "#8B949E", marginBottom: "6px", marginTop: "12px", fontWeight: "600" },
-  select:        { width: "100%", padding: "9px 12px", backgroundColor: "#0D1117", border: "1px solid #30363D", borderRadius: "8px", color: "#E6EDF3", fontSize: "14px", fontFamily: "inherit" },
-  textarea:      { width: "100%", padding: "10px 12px", backgroundColor: "#0D1117", border: "1px solid #30363D", borderRadius: "8px", color: "#E6EDF3", fontSize: "13px", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" },
+  formCard:      { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "20px 22px", border: "1px solid #F0883E33" },
+  formTitle:     { fontSize: "14px", fontWeight: "700", color: "#1A1348", margin: "0 0 14px" },
+  label:         { display: "block", fontSize: "12px", color: "#6B7280", marginBottom: "6px", marginTop: "12px", fontWeight: "600" },
+  select:        { width: "100%", padding: "9px 12px", backgroundColor: "#F5F7FA", border: "1px solid #E5E7EB", borderRadius: "8px", color: "#1A1348", fontSize: "14px", fontFamily: "inherit" },
+  textarea:      { width: "100%", padding: "10px 12px", backgroundColor: "#F5F7FA", border: "1px solid #E5E7EB", borderRadius: "8px", color: "#1A1348", fontSize: "13px", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" },
   btnRow:        { display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "10px" },
   btnSubmit:     { padding: "8px 18px", backgroundColor: "#F0883E", color: "#fff", border: "none", borderRadius: "6px", fontSize: "13px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
-  btnCancel:     { padding: "8px 14px", backgroundColor: "transparent", color: "#6E7681", border: "1px solid #30363D", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit" },
-  errorBanner:   { backgroundColor: "#2D1117", border: "1px solid #FF7B72", color: "#FF7B72", borderRadius: "6px", padding: "8px 12px", fontSize: "13px", marginBottom: "8px" },
+  btnCancel:     { padding: "8px 14px", backgroundColor: "transparent", color: "#6B7280", border: "1px solid #E5E7EB", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit" },
+  errorBanner:   { backgroundColor: "#2D1117", border: "1px solid #E11D48", color: "#E11D48", borderRadius: "6px", padding: "8px 12px", fontSize: "13px", marginBottom: "8px" },
   incidentsList: { display: "flex", flexDirection: "column", gap: "12px" },
-  incidentCard:  { backgroundColor: "#161B22", borderRadius: "10px", padding: "16px 20px" },
+  incidentCard:  { backgroundColor: "#FFFFFF", borderRadius: "10px", padding: "16px 20px" },
   incidentHeader:{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" },
   typeBadge:     { padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "600" },
-  resolvedBadge: { padding: "2px 8px", borderRadius: "20px", fontSize: "11px", fontWeight: "600", backgroundColor: "#1B3A2D", color: "#56D364" },
+  resolvedBadge: { padding: "2px 8px", borderRadius: "20px", fontSize: "11px", fontWeight: "600", backgroundColor: "#1B3A2D", color: "#26C2A1" },
   description:   { fontSize: "13px", color: "#C9D1D9", margin: "0 0 8px", lineHeight: 1.5 },
-  resolutionBox: { backgroundColor: "#0D1117", borderRadius: "6px", padding: "8px 12px", marginBottom: "6px" },
-  btnResoudre:   { fontSize: "12px", color: "#56D364", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, marginTop: "6px" },
-  emptyCard:     { backgroundColor: "#161B22", borderRadius: "12px", padding: "32px 24px", textAlign: "center" },
-  muted:         { color: "#6E7681", fontSize: "13px" },
+  resolutionBox: { backgroundColor: "#F5F7FA", borderRadius: "6px", padding: "8px 12px", marginBottom: "6px" },
+  btnResoudre:   { fontSize: "12px", color: "#26C2A1", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, marginTop: "6px" },
+  emptyCard:     { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "32px 24px", textAlign: "center" },
+  muted:         { color: "#6B7280", fontSize: "13px" },
 };

@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(python -c ' *)",
-      "Bash(mkdir -p \"c:/Users/Utilisateur/Downloads/projet/plateforme-gestion-bus/web/app_web/src/features/controleur/pages\")"
+      "Bash(mkdir -p \"c:/Users/Utilisateur/Downloads/projet/plateforme-gestion-bus/web/app_web/src/features/controleur/pages\")",
+      "Bash(grep -E \"\\\\.py$|manage\")",
+      "PowerShell(if \\(-not \\(Test-Path \"C:\\\\Users\\\\DarkSide\\\\Desktop\\\\projet git\\\\plateforme-gestion-bus\\\\web\\\\app_web\\\\src\\\\features\\\\rh\\\\pages\"\\)\\) { New-Item -ItemType Directory -Force \"C:\\\\Users\\\\DarkSide\\\\Desktop\\\\projet git\\\\plateforme-gestion-bus\\\\web\\\\app_web\\\\src\\\\features\\\\rh\\\\pages\" })",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: amélioration CRUD complet pour EmployeesPage et Support/TicketsPage *)",
+      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\DarkSide\\\\Desktop\\\\projet git\\\\plateforme-gestion-bus\\\\backend\\\\apps\\\\iam\\\\migrations\")",
+      "PowerShell(ls \"C:\\\\Users\\\\DarkSide\\\\Desktop\\\\projet git\\\\plateforme-gestion-bus\\\\web\\\\app_web\\\\src\\\\components\\\\ui\\\\\")",
+      "Bash(curl -s http://localhost:8000/api/transport/bus/ -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzg5MjU1NTk0LCJpYXQiOjE3ODkyNTQ2OTQsImp0aSI6IjU2NDk5YjU4MTU0ZDQyYTQ4MDc4YjIzZWY1MDVmYTNkIiwidXNlcl9pZCI6ImI2Yjk3YWJjLTU1ZDQtNDE5OS1iMDAxLTZiNjNkYjRlZmZiYyJ9.vTkDWLcaZffkcIWa5CqmnI9ak8_U0gLzPe7pmnTdE1M' -H 'Content-Type: application/json')",
+      "Bash(python3 -m json.tool)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Utilisateur\\Downloads\\projet\\plateforme-gestion-bus\\web\\app_web\\src\\features\\controleur"

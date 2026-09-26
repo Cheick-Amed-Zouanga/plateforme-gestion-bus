@@ -1,14 +1,15 @@
-import Header from "../../../components/Header";
-import SubHeader from "../../../components/SubHeader";
+import { PageHeader } from "../../../shared/components/dashboard";
 import ModificationEmploye from "../../../components/modificationEmploye";
 
 function ModificationSavPage() {
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" }}>
-      <Header />
-      <SubHeader title="Modification Agent SAV" />
+    <>
+      <PageHeader
+        title="Modification agent SAV"
+        subtitle="Mettez à jour un compte service clientèle."
+      />
       <ModificationEmploye role="sav" titre="Modifier un agent SAV" />
-    </div>
+    </>
   );
 }
 

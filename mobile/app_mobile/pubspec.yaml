@@ -11,12 +11,16 @@ dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
+  flutter_localizations:
+    sdk: flutter
 
-  # HTTP + gestion des cookies JWT
+  cupertino_icons: ^1.0.8
   dio: ^5.4.0
-  cookie_jar: ^4.0.8
-  dio_cookie_manager: ^3.1.1
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.3
+  intl: ^0.20.2
+  qr_flutter: ^4.1.0
+  google_fonts: ^8.2.1
 
 dev_dependencies:
   flutter_test:
@@ -25,3 +29,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/auth_bus_landscape.png
+    - assets/images/auth_moving_horizon.png
+

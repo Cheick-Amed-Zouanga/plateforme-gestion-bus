@@ -7,6 +7,8 @@ function Header() {
     } catch (error) {
       console.error("Erreur lors de la déconnexion :", error);
     } finally {
+      localStorage.removeItem("username");
+      localStorage.removeItem("role");
       window.location.href = "/login";
     }
   }
@@ -25,14 +27,15 @@ function Header() {
 
 const styles = {
   header: {
-    backgroundColor: "#161B22",
-    borderBottom: "1px solid #30363D",
+    backgroundColor: "#FFFFFF",
+    borderBottom: "1px solid #E5E7EB",
     padding: "0 24px",
+    fontFamily: "'Poppins', 'Segoe UI', sans-serif",
   },
   container: {
-    maxWidth: "960px",
+    maxWidth: "1100px",
     margin: "0 auto",
-    height: "60px",
+    height: "64px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -40,18 +43,17 @@ const styles = {
   title: {
     fontSize: "18px",
     fontWeight: "800",
-    color: "#E6EDF3",
+    color: "#1A1348",
     letterSpacing: "2px",
-    fontFamily: "'Segoe UI', Arial, sans-serif",
   },
   logoutButton: {
     padding: "8px 16px",
     fontSize: "13px",
     fontWeight: "600",
-    color: "#FF7B72",
+    color: "#304FFE",
     backgroundColor: "transparent",
-    border: "1.5px solid #C41E3A",
-    borderRadius: "8px",
+    border: "1.5px solid rgba(48, 79, 254, 0.4)",
+    borderRadius: "12px",
     cursor: "pointer",
     fontFamily: "inherit",
   },

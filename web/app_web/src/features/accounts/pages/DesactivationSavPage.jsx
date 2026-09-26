@@ -1,14 +1,15 @@
-import Header from "../../../components/Header";
-import SubHeader from "../../../components/SubHeader";
+import { PageHeader } from "../../../shared/components/dashboard";
 import DesactivationEmploye from "../../../components/desactivationEmploye";
 
 function DesactivationSavPage() {
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" }}>
-      <Header />
-      <SubHeader title="Désactivation Agent SAV" />
-      <DesactivationEmploye role="SAV" titre="Désactiver un agent SAV" />
-    </div>
+    <>
+      <PageHeader
+        title="Désactivation agent SAV"
+        subtitle="Révoquez l'accès d'un agent SAV."
+      />
+      <DesactivationEmploye role="sav" titre="Désactiver un agent SAV" />
+    </>
   );
 }
 

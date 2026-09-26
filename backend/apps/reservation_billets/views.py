@@ -31,9 +31,9 @@ def _get_role(request, role):
         p = request.user.profil_employe
     except ProfilEmploye.DoesNotExist:
         return None, None
-    if p.role != role or not p.compagnie:
+    if p.role != role or not p.company:
         return None, None
-    return p, p.compagnie
+    return p, p.company
 
 
 def _receptionniste(request):
@@ -44,6 +44,27 @@ def _controleur(request):
     return _get_role(request, ProfilEmploye.Role.CONTROLEUR)
 
 
+def _chef(request):
+    return _get_role(request, ProfilEmploye.Role.CHEF_COMPAGNIE)
+
+
+def _staff_compagnie(request):
+    """
+    Accès plan / staff compagnie :
+    - Legacy : réceptionniste, contrôleur ou chef
+    - IAM : user.company + permission billet.read
+    """
+    for getter in (_receptionniste, _controleur, _chef):
+        profil, compagnie = getter(request)
+        if compagnie:
+            return profil, compagnie
+    user = request.user
+    company = getattr(user, 'company', None)
+    if company is not None and user.has_permission('billet.read'):
+        return None, company
+    return None, None
+
+
 def _acces_refuse(msg='Accès refusé.'):
     return Response({'message': msg}, status=status.HTTP_403_FORBIDDEN)
 
@@ -51,7 +72,7 @@ def _acces_refuse(msg='Accès refusé.'):
 def _get_trajet(trajet_id, compagnie):
     try:
         return Trajet.objects.select_related('bus', 'ligne', 'controleur__utilisateur').get(
-            id=trajet_id, compagnie=compagnie
+            id=trajet_id, company=compagnie
         ), None
     except Trajet.DoesNotExist:
         return None, Response({'message': 'Trajet introuvable.'}, status=status.HTTP_404_NOT_FOUND)
@@ -143,7 +164,7 @@ class ReceptionnisteDashboardView(APIView):
         aujourd_hui = timezone.now().date()
 
         billets_auj = Billet.objects.filter(
-            trajet__compagnie=compagnie,
+            trajet__company=compagnie,
             emis_le__date=aujourd_hui,
             statut_billet=Billet.StatutBillet.CONFIRME,
         )
@@ -153,7 +174,7 @@ class ReceptionnisteDashboardView(APIView):
             .aggregate(t=Sum('prix'))['t'] or 0
         )
         en_attente_nb = Billet.objects.filter(
-            trajet__compagnie=compagnie,
+            trajet__company=compagnie,
             statut_paiement=Billet.StatutPaiement.EN_ATTENTE,
             statut_billet=Billet.StatutBillet.CONFIRME,
         ).count()
@@ -162,7 +183,7 @@ class ReceptionnisteDashboardView(APIView):
         trajets_dispo = (
             Trajet.objects
             .filter(
-                compagnie=compagnie,
+                company=compagnie,
                 depart_prevu__gt=timezone.now(),
                 depart_prevu__lte=dans_un_mois,
                 statut__in=['PLANIFIE', 'EN_COURS'],
@@ -210,7 +231,7 @@ class ReceptionnisteDashboardView(APIView):
                              'message': f"{en_attente_nb} billet(s) en attente de paiement"})
 
         commandes_en_ligne_attente = Billet.objects.filter(
-            trajet__compagnie=compagnie,
+            trajet__company=compagnie,
             source=Billet.Source.APP,
             statut_billet=Billet.StatutBillet.CONFIRME,
             statut_paiement=Billet.StatutPaiement.EN_ATTENTE,
@@ -220,7 +241,7 @@ class ReceptionnisteDashboardView(APIView):
             'stats': {
                 'billets_auj':               billets_auj.count(),
                 'encaissement':              encaissement,
-                'trajets_auj':               Trajet.objects.filter(compagnie=compagnie, depart_prevu__date=aujourd_hui, statut__in=['PLANIFIE', 'EN_COURS']).count(),
+                'trajets_auj':               Trajet.objects.filter(company=compagnie, depart_prevu__date=aujourd_hui, statut__in=['PLANIFIE', 'EN_COURS']).count(),
                 'en_attente_paiement':       en_attente_nb,
                 'commandes_en_ligne_attente': commandes_en_ligne_attente,
             },
@@ -240,7 +261,7 @@ class ReceptionnisteTrajetsView(APIView):
 
         trajets = (
             Trajet.objects
-            .filter(compagnie=compagnie, depart_prevu__gt=timezone.now(), statut__in=['PLANIFIE', 'EN_COURS'])
+            .filter(company=compagnie, depart_prevu__gt=timezone.now(), statut__in=['PLANIFIE', 'EN_COURS'])
             .select_related('bus', 'ligne', 'controleur__utilisateur')
             .prefetch_related('ligne__arrets')
             .order_by('depart_prevu')
@@ -271,12 +292,12 @@ class ReceptionnisteTrajetsView(APIView):
 
         data = request.data
         try:
-            ligne      = Ligne.objects.get(id=data.get('ligne'), compagnie=compagnie)
-            bus        = Bus.objects.get(id=data.get('bus'), compagnie=compagnie)
+            ligne      = Ligne.objects.get(id=data.get('ligne'), company=compagnie)
+            bus        = Bus.objects.get(id=data.get('bus'), company=compagnie)
             controleur = None
             if data.get('controleur'):
                 controleur = ProfilEmploye.objects.get(
-                    id=data['controleur'], compagnie=compagnie,
+                    id=data['controleur'], company=compagnie,
                     role=ProfilEmploye.Role.CONTROLEUR, actif=True,
                 )
         except (Ligne.DoesNotExist, Bus.DoesNotExist, ProfilEmploye.DoesNotExist) as e:
@@ -299,22 +320,20 @@ class ReceptionnisteTrajetsView(APIView):
             return Response({'message': conflit}, status=status.HTTP_409_CONFLICT)
 
         trajet = Trajet.objects.create(
-            compagnie=compagnie, ligne=ligne, bus=bus,
+            company=compagnie, ligne=ligne, bus=bus,
             controleur=controleur, depart_prevu=depart_prevu, arrivee_prevue=arrivee_prevue,
         )
         return Response({'message': 'Trajet créé.', 'id': trajet.id}, status=status.HTTP_201_CREATED)
 
 
 class PlanBusView(APIView):
-    """Plan visuel des sièges pour un trajet, filtrable par segment."""
+    """Plan visuel des sièges : libre / payé / en attente de paiement."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, trajet_id):
-        profil, compagnie = _receptionniste(request)
+        profil, compagnie = _staff_compagnie(request)
         if not compagnie:
-            profil, compagnie = _controleur(request)
-            if not compagnie:
-                return _acces_refuse()
+            return _acces_refuse()
 
         trajet, err = _get_trajet(trajet_id, compagnie)
         if err:
@@ -334,7 +353,7 @@ class PlanBusView(APIView):
             except ArretLigne.DoesNotExist:
                 pass
 
-        sieges  = list(
+        sieges = list(
             trajet.bus.sieges
             .annotate(num_int=Cast('numero', DjIntegerField()))
             .order_by('num_int')
@@ -345,14 +364,33 @@ class PlanBusView(APIView):
         for s in sieges:
             b = occupes.get(s.id)
             if b:
-                etat    = 'guichet' if b.source == Billet.Source.GUICHET else 'app'
+                if b.statut_paiement == Billet.StatutPaiement.PAYE:
+                    etat = 'paye'
+                else:
+                    etat = 'en_attente'
                 passager = b.nom_passager()
-                segment  = f"{b.arret_depart.ville} → {b.arret_arrivee.ville}" if b.arret_depart and b.arret_arrivee else ''
+                segment = (
+                    f"{b.arret_depart.ville} → {b.arret_arrivee.ville}"
+                    if b.arret_depart and b.arret_arrivee else ''
+                )
+                source = b.source
+                statut_paiement = b.statut_paiement
             else:
                 etat, passager, segment = 'disponible', None, ''
-            plan.append({'id': s.id, 'numero': int(s.numero), 'etat': etat, 'passager': passager, 'segment': segment})
+                source, statut_paiement = None, None
+            plan.append({
+                'id': s.id,
+                'numero': int(s.numero),
+                'etat': etat,
+                'passager': passager,
+                'segment': segment,
+                'source': source,
+                'statut_paiement': statut_paiement,
+            })
 
         dispo = sum(1 for x in plan if x['etat'] == 'disponible')
+        payes = sum(1 for x in plan if x['etat'] == 'paye')
+        en_attente = sum(1 for x in plan if x['etat'] == 'en_attente')
         return Response({
             'bus': trajet.bus.immatriculation,
             'type_bus': trajet.bus.type_bus,
@@ -361,8 +399,8 @@ class PlanBusView(APIView):
             'stats': {
                 'total': len(plan),
                 'disponibles': dispo,
-                'guichet': sum(1 for x in plan if x['etat'] == 'guichet'),
-                'app':     sum(1 for x in plan if x['etat'] == 'app'),
+                'payes': payes,
+                'en_attente': en_attente,
                 'taux_occupation': round((len(plan) - dispo) / len(plan) * 100) if plan else 0,
             },
         })
@@ -381,12 +419,12 @@ class VenteBilletView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         d = serializer.validated_data
-        if d['trajet'].compagnie != compagnie:
+        if d['trajet'].company != compagnie:
             return Response({'message': "Ce trajet n'appartient pas à votre compagnie."}, status=status.HTTP_403_FORBIDDEN)
 
         # Prix depuis les tarifs de la ligne
         tarif = Tarif.objects.filter(
-            compagnie=compagnie,
+            company=compagnie,
             ligne=d['trajet'].ligne,
             arret_depart=d['arret_depart'],
             arret_arrivee=d['arret_arrivee'],
@@ -485,7 +523,7 @@ class RechercheView(APIView):
         if not q:
             return Response({'billets': []})
 
-        billets = Billet.objects.filter(trajet__compagnie=compagnie).select_related(
+        billets = Billet.objects.filter(trajet__company=compagnie).select_related(
             'trajet__ligne', 'trajet__bus', 'siege', 'arret_depart', 'arret_arrivee',
         ).filter(
             models.Q(numero_billet__icontains=q)
@@ -507,7 +545,7 @@ class BilletDetailView(APIView):
         try:
             b = Billet.objects.select_related(
                 'trajet__ligne', 'trajet__bus', 'siege', 'arret_depart', 'arret_arrivee'
-            ).get(numero_billet=numero, trajet__compagnie=compagnie)
+            ).get(numero_billet=numero, trajet__company=compagnie)
             return b, profil, None
         except Billet.DoesNotExist:
             return None, None, Response({'message': 'Billet introuvable.'}, status=status.HTTP_404_NOT_FOUND)
@@ -563,10 +601,10 @@ class CommandesEnLigneView(APIView):
     def _base_qs(self, compagnie):
         return (
             Billet.objects
-            .filter(trajet__compagnie=compagnie, source=Billet.Source.APP,
+            .filter(trajet__company=compagnie, source=Billet.Source.APP,
                     statut_billet=Billet.StatutBillet.CONFIRME)
             .select_related(
-                'trajet__ligne', 'trajet__bus', 'trajet__compagnie',
+                'trajet__ligne', 'trajet__bus', 'trajet__company',
                 'siege', 'arret_depart', 'arret_arrivee',
                 'reservation__profil_client__utilisateur',
             )
@@ -596,9 +634,9 @@ class CommandesEnLigneView(APIView):
             return _acces_refuse()
         try:
             b = Billet.objects.select_related(
-                'trajet__ligne', 'trajet__bus', 'trajet__compagnie',
+                'trajet__ligne', 'trajet__bus', 'trajet__company',
                 'siege', 'arret_depart', 'arret_arrivee',
-            ).get(numero_billet=numero, trajet__compagnie=compagnie, source=Billet.Source.APP)
+            ).get(numero_billet=numero, trajet__company=compagnie, source=Billet.Source.APP)
         except Billet.DoesNotExist:
             return Response({'message': 'Commande introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -610,45 +648,54 @@ class CommandesEnLigneView(APIView):
 
 class HistoriqueBilletsView(APIView):
     """
-    Historique des billets pour les trajets passés (TERMINE/ANNULE).
-    Chef : tous les billets de la compagnie.
-    Réceptionniste : seulement ses ventes guichet.
+    Historique / liste des billets de la compagnie.
+    - IAM : billet.read + company
+    - Legacy chef : tous les billets (trajets terminés/annulés)
+    - Legacy réceptionniste : ses ventes guichet seulement
     """
     permission_classes = [IsAuthenticated]
 
     def _get_profil_compagnie(self, request):
         profil = getattr(request.user, 'profil_employe', None)
-        if profil and profil.compagnie and profil.role in [
+        if profil and profil.company and profil.role in [
             ProfilEmploye.Role.CHEF_COMPAGNIE,
             ProfilEmploye.Role.RECEPTIONNISTE,
         ]:
-            return profil, profil.compagnie
+            return profil, profil.company
         return None, None
 
     def get(self, request):
-        profil, compagnie = self._get_profil_compagnie(request)
+        profil, compagnie_legacy = self._get_profil_compagnie(request)
+        # IAM prioritaire : billet.read + company → historique compagnie complète
+        company = getattr(request.user, 'company', None)
+        iam_access = bool(company and request.user.has_permission('billet.read'))
+        compagnie = company if iam_access else compagnie_legacy
         if not compagnie:
             return Response({'message': 'Accès non autorisé.'}, status=status.HTTP_403_FORBIDDEN)
 
         jours  = int(request.query_params.get('jours', 90))
         depuis = timezone.now() - timedelta(days=jours)
 
+        filters = {
+            'trajet__company': compagnie,
+            'emis_le__gte': depuis,
+        }
+        # Legacy : uniquement trajets clos ; IAM : tous les billets récents
+        if not iam_access:
+            filters['trajet__statut__in'] = ['TERMINE', 'ANNULE']
+
         qs = (
             Billet.objects
-            .filter(
-                trajet__compagnie=compagnie,
-                trajet__statut__in=['TERMINE', 'ANNULE'],
-                emis_le__gte=depuis,
-            )
+            .filter(**filters)
             .select_related(
-                'trajet__ligne', 'trajet__bus', 'trajet__compagnie',
+                'trajet__ligne', 'trajet__bus', 'trajet__company',
                 'siege', 'arret_depart', 'arret_arrivee',
             )
             .order_by('-emis_le')
         )
 
-        # La réceptionniste voit uniquement ses ventes guichet
-        if profil.role == ProfilEmploye.Role.RECEPTIONNISTE:
+        # Legacy réceptionniste uniquement : ses ventes guichet
+        if not iam_access and profil and profil.role == ProfilEmploye.Role.RECEPTIONNISTE:
             qs = qs.filter(source=Billet.Source.GUICHET, vendu_par=profil)
 
         total_billets  = qs.count()
@@ -670,7 +717,7 @@ class AnnulerBilletView(APIView):
         if not compagnie:
             return _acces_refuse()
         try:
-            b = Billet.objects.get(numero_billet=numero, trajet__compagnie=compagnie)
+            b = Billet.objects.get(numero_billet=numero, trajet__company=compagnie)
         except Billet.DoesNotExist:
             return Response({'message': 'Billet introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -698,7 +745,7 @@ class ControleurMonTrajetView(APIView):
         aujourd_hui = timezone.now().date()
         trajet = (
             Trajet.objects
-            .filter(compagnie=compagnie, controleur=profil,
+            .filter(company=compagnie, controleur=profil,
                     depart_prevu__date=aujourd_hui,
                     statut__in=['PLANIFIE', 'EN_COURS'])
             .select_related('bus', 'ligne')
@@ -771,13 +818,13 @@ class ControleurValiderBilletView(APIView):
 
         try:
             billet = Billet.objects.select_related(
-                'trajet__ligne', 'trajet__bus', 'trajet__compagnie',
+                'trajet__ligne', 'trajet__bus', 'trajet__company',
                 'siege', 'arret_depart', 'arret_arrivee',
             ).get(numero_billet=numero)
         except Billet.DoesNotExist:
             return Response({'valide': False, 'raison': 'INEXISTANT', 'message': 'Code QR inconnu — accès refusé.'})
 
-        if billet.trajet.compagnie != compagnie:
+        if billet.trajet.company != compagnie:
             return Response({'valide': False, 'raison': 'AUTRE_COMPAGNIE', 'message': "Ce billet n'appartient pas à votre compagnie."})
         if billet.statut_billet == Billet.StatutBillet.ANNULE:
             return Response({'valide': False, 'raison': 'ANNULE', 'message': 'Billet annulé — accès refusé.'})
@@ -807,7 +854,7 @@ class ControleurValiderBilletView(APIView):
             'passager_telephone':       billet.passager_telephone,
             'passager_piece_identite':  billet.passager_piece_identite,
             'siege':                    int(billet.siege.numero) if billet.siege else None,
-            'nom_compagnie':            billet.trajet.compagnie.nom if billet.trajet.compagnie else '',
+            'nom_compagnie':            billet.trajet.company.name if billet.trajet.company else '',
             'bus_display':              billet.trajet.bus.immatriculation,
             'ligne_display':            str(billet.trajet.ligne),
             'depart_ville':             billet.arret_depart.ville  if billet.arret_depart  else '—',
@@ -939,7 +986,7 @@ class ControleurIncidentDetailView(APIView):
         if not compagnie:
             return _acces_refuse()
         try:
-            incident = Incident.objects.get(id=incident_id, trajet__compagnie=compagnie)
+            incident = Incident.objects.get(id=incident_id, trajet__company=compagnie)
         except Incident.DoesNotExist:
             return Response({'message': 'Incident introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 

@@ -16,10 +16,10 @@ function ComptableHomePage() {
 }
 
 const styles = {
-  page: { minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" },
+  page: { minHeight: "100vh", backgroundColor: "#F5F7FA", fontFamily: "'Poppins', 'Segoe UI', sans-serif" },
   main: { maxWidth: "960px", margin: "0 auto", padding: "32px 20px" },
-  card: { backgroundColor: "#161B22", borderRadius: "14px", padding: "28px 30px", boxShadow: "0 4px 20px rgba(0,0,0,0.4)", borderLeft: "4px solid #C41E3A" },
-  text: { color: "#8B949E", fontSize: "15px", margin: 0 },
+  card: { backgroundColor: "#FFFFFF", borderRadius: "14px", padding: "28px 30px", boxShadow: "0 4px 20px rgba(0,0,0,0.4)", borderLeft: "4px solid #304FFE" },
+  text: { color: "#6B7280", fontSize: "15px", margin: 0 },
 };
 
 export default ComptableHomePage;

@@ -1,15 +1,22 @@
 from rest_framework import serializers
-from .models import Bus, Ligne, ArretLigne, Trajet, Tarif  # noqa: F401 (ArretLigne used in PrimaryKeyRelatedField)
+from .models import Bus, Ligne, ArretLigne, Trajet, Tarif, HoraireLigne  # noqa: F401 (ArretLigne used in PrimaryKeyRelatedField)
 
 
 # ─── Bus ─────────────────────────────────────────────────────────────────────
 
 class BusSerializer(serializers.ModelSerializer):
     type_bus_display = serializers.CharField(source='get_type_bus_display', read_only=True)
+    sieges_count = serializers.SerializerMethodField()
 
     class Meta:
         model  = Bus
-        fields = ['id', 'immatriculation', 'type_bus', 'type_bus_display', 'capacite', 'actif']
+        fields = [
+            'id', 'immatriculation', 'type_bus', 'type_bus_display',
+            'capacite', 'sieges_count', 'actif',
+        ]
+
+    def get_sieges_count(self, obj):
+        return obj.sieges.count()
 
 
 class CreationBusSerializer(serializers.Serializer):
@@ -138,7 +145,7 @@ class TrajetSerializer(serializers.ModelSerializer):
         model  = Trajet
         fields = [
             'id', 'ligne', 'ligne_display', 'bus', 'bus_display', 'type_bus',
-            'controleur', 'controleur_display',
+            'controleur', 'controleur_display', 'horaire',
             'depart_prevu', 'arrivee_prevue', 'statut', 'statut_display',
         ]
 
@@ -147,6 +154,109 @@ class TrajetSerializer(serializers.ModelSerializer):
             return None
         u = obj.controleur.utilisateur
         return f"{u.first_name} {u.last_name}".strip() or u.username
+
+
+# ─── Horaire récurrent ────────────────────────────────────────────────────────
+
+JOURS_CHOICES = [(i, label) for i, label in HoraireLigne.JOURS_LABELS]
+
+
+class HoraireLigneSerializer(serializers.ModelSerializer):
+    ligne_display      = serializers.CharField(source='ligne.__str__', read_only=True)
+    type_bus_display   = serializers.CharField(source='get_type_bus_display', read_only=True)
+    bus_defaut_display = serializers.SerializerMethodField()
+    jours_list         = serializers.SerializerMethodField()
+    jours_labels       = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = HoraireLigne
+        fields = [
+            'id', 'ligne', 'ligne_display', 'heure_depart',
+            'jours', 'jours_list', 'jours_labels',
+            'type_bus', 'type_bus_display',
+            'bus_defaut', 'bus_defaut_display',
+            'duree_estimee_min', 'actif',
+            'date_debut', 'date_fin', 'date_creation',
+        ]
+
+    def get_bus_defaut_display(self, obj):
+        return obj.bus_defaut.immatriculation if obj.bus_defaut_id else None
+
+    def get_jours_list(self, obj):
+        return obj.jours_list()
+
+    def get_jours_labels(self, obj):
+        labels = dict(HoraireLigne.JOURS_LABELS)
+        return [labels.get(j, str(j)) for j in obj.jours_list()]
+
+
+class CreationHoraireSerializer(serializers.Serializer):
+    ligne             = serializers.PrimaryKeyRelatedField(queryset=Ligne.objects.all())
+    heure_depart      = serializers.TimeField()
+    jours             = serializers.ListField(
+        child=serializers.IntegerField(min_value=0, max_value=6),
+        allow_empty=False,
+    )
+    type_bus          = serializers.ChoiceField(choices=Bus.TypeBus.choices, default=Bus.TypeBus.STANDARD)
+    bus_defaut        = serializers.PrimaryKeyRelatedField(
+        queryset=Bus.objects.filter(actif=True), required=False, allow_null=True,
+    )
+    duree_estimee_min = serializers.IntegerField(min_value=1, required=False, allow_null=True)
+    actif             = serializers.BooleanField(required=False, default=True)
+    date_debut        = serializers.DateField(required=False, allow_null=True)
+    date_fin          = serializers.DateField(required=False, allow_null=True)
+
+    def validate(self, data):
+        jours = sorted(set(data['jours']))
+        if not jours:
+            raise serializers.ValidationError({'jours': 'Sélectionnez au moins un jour.'})
+        data['jours'] = jours
+        date_debut = data.get('date_debut')
+        date_fin = data.get('date_fin')
+        if date_debut and date_fin and date_fin < date_debut:
+            raise serializers.ValidationError({'date_fin': 'La date de fin doit être après la date de début.'})
+        bus = data.get('bus_defaut')
+        if bus and bus.type_bus != data.get('type_bus', Bus.TypeBus.STANDARD):
+            raise serializers.ValidationError(
+                {'bus_defaut': 'Le bus par défaut doit correspondre au type de bus choisi.'}
+            )
+        return data
+
+
+class ModificationHoraireSerializer(serializers.Serializer):
+    ligne             = serializers.PrimaryKeyRelatedField(queryset=Ligne.objects.all(), required=False)
+    heure_depart      = serializers.TimeField(required=False)
+    jours             = serializers.ListField(
+        child=serializers.IntegerField(min_value=0, max_value=6),
+        allow_empty=False,
+        required=False,
+    )
+    type_bus          = serializers.ChoiceField(choices=Bus.TypeBus.choices, required=False)
+    bus_defaut        = serializers.PrimaryKeyRelatedField(
+        queryset=Bus.objects.filter(actif=True), required=False, allow_null=True,
+    )
+    duree_estimee_min = serializers.IntegerField(min_value=1, required=False, allow_null=True)
+    actif             = serializers.BooleanField(required=False)
+    date_debut        = serializers.DateField(required=False, allow_null=True)
+    date_fin          = serializers.DateField(required=False, allow_null=True)
+
+    def validate(self, data):
+        if 'jours' in data:
+            jours = sorted(set(data['jours']))
+            if not jours:
+                raise serializers.ValidationError({'jours': 'Sélectionnez au moins un jour.'})
+            data['jours'] = jours
+        date_debut = data.get('date_debut')
+        date_fin = data.get('date_fin')
+        if date_debut and date_fin and date_fin < date_debut:
+            raise serializers.ValidationError({'date_fin': 'La date de fin doit être après la date de début.'})
+        bus = data.get('bus_defaut')
+        type_bus = data.get('type_bus')
+        if bus is not None and type_bus is not None and bus.type_bus != type_bus:
+            raise serializers.ValidationError(
+                {'bus_defaut': 'Le bus par défaut doit correspondre au type de bus choisi.'}
+            )
+        return data
 
 
 from apps.accounts.models import ProfilEmploye as _PE  # noqa: E402
@@ -227,7 +337,7 @@ class CreationTarifSerializer(serializers.Serializer):
                 "L'arrêt d'arrivée doit être après l'arrêt de départ sur la ligne."
             )
         if compagnie and Tarif.objects.filter(
-            compagnie=compagnie, ligne=ligne,
+            company=compagnie, ligne=ligne,
             arret_depart=arret_dep, arret_arrivee=arret_arr,
             type_bus=data['type_bus'],
         ).exists():

@@ -3,11 +3,42 @@ import re
 from datetime import date
 
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
+from django.utils.text import slugify
 from rest_framework import serializers
 
 from .models import ProfilClient, ContactConfiance, ProfilEmploye
-from apps.transport.models import CompagnieTransport
+from apps.iam.models import CustomUser, Company, Role
+
+
+def resolve_company_for_employe(user, permission_name=None):
+    """
+    Compagnie pour ops employés.
+    IAM (employe.*) ou legacy CHEF_COMPAGNIE.
+    """
+    company = getattr(user, 'company', None)
+    if company is not None:
+        if permission_name is None or user.has_permission(permission_name):
+            return company
+        try:
+            if user.profil_employe.role == ProfilEmploye.Role.CHEF_COMPAGNIE:
+                return company
+        except ProfilEmploye.DoesNotExist:
+            pass
+        return None
+
+    try:
+        profil = user.profil_employe
+        if profil.role == ProfilEmploye.Role.CHEF_COMPAGNIE and profil.company_id:
+            return profil.company
+    except ProfilEmploye.DoesNotExist:
+        pass
+    return None
+
+
+IAM_ROLE_BY_PROFIL = {
+    ProfilEmploye.Role.RECEPTIONNISTE: 'Réceptionniste',
+    ProfilEmploye.Role.CONTROLEUR: 'Contrôleur',
+}
 
 
 class InscriptionClientSerializer(serializers.Serializer):
@@ -43,14 +74,14 @@ class InscriptionClientSerializer(serializers.Serializer):
         return value
 
     def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
+        if CustomUser.objects.filter(username=value).exists():
             raise serializers.ValidationError(
                 "Ce nom d'utilisateur existe déjà."
             )
         return value
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
+        if CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError(
                 "Cet email existe déjà."
             )
@@ -83,7 +114,7 @@ class InscriptionClientSerializer(serializers.Serializer):
         date_naissance = validated_data.pop("date_naissance")
         mot_de_passe = validated_data.pop("password")
 
-        utilisateur = User.objects.create_user(
+        utilisateur = CustomUser.objects.create_user(
             username=validated_data["username"],
             first_name=validated_data["first_name"],
             last_name=validated_data["last_name"],
@@ -136,12 +167,12 @@ class BaseCreationEmployeSerializer(serializers.Serializer):
         return value
 
     def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
+        if CustomUser.objects.filter(username=value).exists():
             raise serializers.ValidationError("Ce nom d'utilisateur existe déjà.")
         return value
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
+        if CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError("Cet email existe déjà.")
         return value
 
@@ -179,7 +210,7 @@ class CreationSAVSerializer(BaseCreationEmployeSerializer):
         validated_data.pop("confirmationPassword", None)
         telephone = validated_data.pop("tel")
 
-        utilisateur = User.objects.create_user(
+        utilisateur = CustomUser.objects.create_user(
             username=validated_data["username"],
             first_name=validated_data["prenom"],
             last_name=validated_data["nom"],
@@ -189,7 +220,7 @@ class CreationSAVSerializer(BaseCreationEmployeSerializer):
 
         ProfilEmploye.objects.create(
             utilisateur=utilisateur,
-            compagnie=None,
+            company=None,
             role=ProfilEmploye.Role.SAV,
             telephone=telephone,
             actif=True,
@@ -227,21 +258,30 @@ class CreationChefCompagnieSerializer(BaseCreationEmployeSerializer):
         validated_data.pop("confirmationPassword", None)
         telephone = validated_data.pop("tel")
 
-        compagnie, _ = CompagnieTransport.objects.get_or_create(
-            nom=nom_compagnie.strip()
+        # Créer la compagnie (tenant) - même modèle Company que le reste
+        # de la plateforme multi-tenant (apps.iam).
+        slug = slugify(nom_compagnie.strip())
+        compagnie, _ = Company.objects.get_or_create(
+            slug=slug,
+            defaults={
+                'name': nom_compagnie.strip(),
+                'email': f'contact@{slug}.com',
+            },
         )
 
-        utilisateur = User.objects.create_user(
+        utilisateur = CustomUser.objects.create_user(
             username=validated_data["username"],
             first_name=validated_data["prenom"],
             last_name=validated_data["nom"],
             email=validated_data["email"],
             password=mot_de_passe,
+            company=compagnie,
+            is_staff=True,  # Chef de compagnie = admin de son tenant
         )
 
         ProfilEmploye.objects.create(
             utilisateur=utilisateur,
-            compagnie=compagnie,
+            company=compagnie,
             role=ProfilEmploye.Role.CHEF_COMPAGNIE,
             telephone=telephone,
             actif=True,
@@ -276,7 +316,7 @@ class CreationComptablePlateformeSerializer(BaseCreationEmployeSerializer):
         validated_data.pop("confirmationPassword", None)
         telephone = validated_data.pop("tel")
 
-        utilisateur = User.objects.create_user(
+        utilisateur = CustomUser.objects.create_user(
             username=validated_data["username"],
             first_name=validated_data["prenom"],
             last_name=validated_data["nom"],
@@ -286,7 +326,7 @@ class CreationComptablePlateformeSerializer(BaseCreationEmployeSerializer):
 
         ProfilEmploye.objects.create(
             utilisateur=utilisateur,
-            compagnie=None,
+            company=None,
             role=ProfilEmploye.Role.COMPTABLE,
             telephone=telephone,
             actif=True,
@@ -305,27 +345,14 @@ class CreationEmployeCompagnieSerializer(BaseCreationEmployeSerializer):
     )
 
     def validate(self, data):
-        request = self.context.get("request")
-        utilisateur_connecte = request.user
-
-        try:
-            profil_employe = utilisateur_connecte.profil_employe
-        except ProfilEmploye.DoesNotExist:
-            raise serializers.ValidationError(
-                "Seul un chef de compagnie peut créer un employé."
-            )
-
-        if profil_employe.role != ProfilEmploye.Role.CHEF_COMPAGNIE:
-            raise serializers.ValidationError(
-                "Seul un chef de compagnie peut créer un employé."
-            )
-
-        if profil_employe.compagnie is None:
-            raise serializers.ValidationError(
-                "Le chef connecté n'est rattaché à aucune compagnie."
-            )
-
         data = super().validate(data)
+        request = self.context.get("request")
+        company = resolve_company_for_employe(request.user, 'employe.create')
+        if company is None:
+            raise serializers.ValidationError(
+                "Permission employe.create requise, ou rôle chef de compagnie."
+            )
+        self.context['company'] = company
         return data
 
     def create(self, validated_data):
@@ -333,20 +360,28 @@ class CreationEmployeCompagnieSerializer(BaseCreationEmployeSerializer):
         validated_data.pop("confirmationPassword", None)
         telephone = validated_data.pop("tel")
         role = validated_data.pop("role")
+        company = self.context['company']
 
-        chef = self.context["request"].user.profil_employe
-
-        utilisateur = User.objects.create_user(
+        utilisateur = CustomUser.objects.create_user(
             username=validated_data["username"],
             first_name=validated_data["prenom"],
             last_name=validated_data["nom"],
             email=validated_data["email"],
             password=mot_de_passe,
+            company=company,
         )
+
+        iam_name = IAM_ROLE_BY_PROFIL.get(role)
+        if iam_name:
+            iam_role = Role.objects.filter(
+                company=None, name=iam_name, is_active=True
+            ).first()
+            if iam_role:
+                utilisateur.roles.add(iam_role)
 
         ProfilEmploye.objects.create(
             utilisateur=utilisateur,
-            compagnie=chef.compagnie,
+            company=company,
             role=role,
             telephone=telephone,
             actif=True,
@@ -360,10 +395,17 @@ class ConnexionSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, required=True)
 
     def validate(self, data):
-        utilisateur = authenticate(
-            username=data.get("username"),
-            password=data.get("password"),
-        )
+        login = (data.get("username") or "").strip()
+        password = data.get("password")
+
+        # USERNAME_FIELD = email : résoudre aussi par username (mobile)
+        email_login = login
+        if "@" not in login:
+            user_by_username = CustomUser.objects.filter(username__iexact=login).first()
+            if user_by_username is not None:
+                email_login = user_by_username.email
+
+        utilisateur = authenticate(username=email_login, password=password)
 
         if utilisateur is None:
             raise serializers.ValidationError("Nom d'utilisateur ou mot de passe incorrect.")
@@ -383,7 +425,7 @@ class ProfilConnecteSerializer(serializers.ModelSerializer):
     compagnie = serializers.SerializerMethodField()
 
     class Meta:
-        model = User
+        model = CustomUser
         fields = ["id", "username", "nom", "prenom", "email", "role", "compagnie"]
 
     def get_nom(self, obj):
@@ -400,8 +442,8 @@ class ProfilConnecteSerializer(serializers.ModelSerializer):
         return None
 
     def get_compagnie(self, obj):
-        if hasattr(obj, "profil_employe") and obj.profil_employe.compagnie:
-            return obj.profil_employe.compagnie.nom
+        if hasattr(obj, "profil_employe") and obj.profil_employe.company:
+            return obj.profil_employe.company.name
         return None
 
 
@@ -473,19 +515,13 @@ class ModificationEmployeCompagnieSerializer(serializers.Serializer):
         request = self.context.get("request")
         employe_cible = self.context.get("employe_cible")
 
-        try:
-            profil_chef = request.user.profil_employe
-        except ProfilEmploye.DoesNotExist:
+        company = resolve_company_for_employe(request.user, 'employe.update')
+        if company is None:
             raise serializers.ValidationError(
-                "Seul un chef de compagnie peut modifier un employé."
+                "Permission employe.update requise, ou rôle chef de compagnie."
             )
 
-        if profil_chef.role != ProfilEmploye.Role.CHEF_COMPAGNIE:
-            raise serializers.ValidationError(
-                "Seul un chef de compagnie peut modifier un employé."
-            )
-
-        if employe_cible.compagnie != profil_chef.compagnie:
+        if employe_cible.company_id != company.id:
             raise serializers.ValidationError(
                 "Vous ne pouvez modifier qu'un employé de votre compagnie."
             )
@@ -585,8 +621,8 @@ class DemandeReinitialisationSerializer(serializers.Serializer):
     def validate_email(self, value):
         value = value.lower().strip()
         try:
-            utilisateur = User.objects.get(email__iexact=value)
-        except User.DoesNotExist:
+            utilisateur = CustomUser.objects.get(email__iexact=value)
+        except CustomUser.DoesNotExist:
             raise serializers.ValidationError(
                 "Aucun compte actif n'est associé à cette adresse email."
             )
@@ -631,7 +667,7 @@ class ReinitialisationCompteSerializer(serializers.Serializer):
 
     def validate_nouveau_username(self, value):
         email = self.initial_data.get("email", "")
-        utilisateur = User.objects.filter(username=value).exclude(email__iexact=email).first()
+        utilisateur = CustomUser.objects.filter(username=value).exclude(email__iexact=email).first()
         if utilisateur is not None:
             raise serializers.ValidationError("Ce nom d'utilisateur existe déjà.")
         return value

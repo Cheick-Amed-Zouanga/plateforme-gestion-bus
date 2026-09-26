@@ -5,15 +5,15 @@ import SubHeader from "../../../components/SubHeader";
 import apiFetch from "../../../shared/services/api";
 
 const STATUT_BILLET = {
-  CONFIRME: { label: "Confirmé", color: "#56D364" },
+  CONFIRME: { label: "Confirmé", color: "#26C2A1" },
   UTILISE:  { label: "Utilisé",  color: "#58A6FF" },
-  ANNULE:   { label: "Annulé",   color: "#FF7B72" },
+  ANNULE:   { label: "Annulé",   color: "#E11D48" },
 };
 
 const STATUT_PAIEMENT = {
-  PAYE:       { label: "Payé",       color: "#56D364" },
+  PAYE:       { label: "Payé",       color: "#26C2A1" },
   EN_ATTENTE: { label: "En attente", color: "#F0883E" },
-  REMBOURSE:  { label: "Remboursé",  color: "#6E7681" },
+  REMBOURSE:  { label: "Remboursé",  color: "#6B7280" },
 };
 
 export default function ReceptionnisteListePassagersPage() {
@@ -112,9 +112,9 @@ export default function ReceptionnisteListePassagersPage() {
         {selectedTrajet && !loading && (
           <div style={st.statsRow}>
             <StatChip label="Total" value={totalPassagers} color="#58A6FF" />
-            <StatChip label="Payés" value={payesCount} color="#56D364" />
+            <StatChip label="Payés" value={payesCount} color="#26C2A1" />
             <StatChip label="En attente" value={attenteCount} color="#F0883E" />
-            {trajetActif && <StatChip label="Capacité" value={trajetActif.capacite ?? "—"} color="#6E7681" />}
+            {trajetActif && <StatChip label="Capacité" value={trajetActif.capacite ?? "—"} color="#6B7280" />}
           </div>
         )}
 
@@ -149,8 +149,8 @@ export default function ReceptionnisteListePassagersPage() {
                   {passagers.map(p => (
                     <tr key={p.id} style={st.tr}>
                       <td style={st.td}><span style={st.numBillet}>{p.numero_billet}</span></td>
-                      <td style={st.td}><span style={{ color: "#E6EDF3", fontWeight: "600" }}>{p.passager}</span></td>
-                      <td style={st.td}>{p.passager_telephone || <span style={{ color: "#6E7681" }}>—</span>}</td>
+                      <td style={st.td}><span style={{ color: "#1A1348", fontWeight: "600" }}>{p.passager}</span></td>
+                      <td style={st.td}>{p.passager_telephone || <span style={{ color: "#6B7280" }}>—</span>}</td>
                       <td style={st.td}><span style={st.seatBadge}>{p.siege_numero ?? "—"}</span></td>
                       <td style={{ ...st.td, fontSize: "12px" }}>
                         <span style={{ color: "#79C0FF" }}>{p.arret_depart_ville}</span>
@@ -184,30 +184,30 @@ function Badge({ m }) {
 
 function StatChip({ label, value, color }) {
   return (
-    <div style={{ backgroundColor: "#161B22", borderRadius: "10px", padding: "14px 18px", borderTop: `3px solid ${color}`, flex: "1 1 120px" }}>
-      <div style={{ fontSize: "11px", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
+    <div style={{ backgroundColor: "#FFFFFF", borderRadius: "10px", padding: "14px 18px", borderTop: `3px solid ${color}`, flex: "1 1 120px" }}>
+      <div style={{ fontSize: "11px", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
       <div style={{ fontSize: "22px", fontWeight: "800", color, marginTop: "4px" }}>{value}</div>
     </div>
   );
 }
 
 const st = {
-  page:        { minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" },
+  page:        { minHeight: "100vh", backgroundColor: "#F5F7FA", fontFamily: "'Poppins', 'Segoe UI', sans-serif" },
   main:        { maxWidth: "1100px", margin: "0 auto", padding: "28px 20px 48px", display: "flex", flexDirection: "column", gap: "16px" },
-  card:        { backgroundColor: "#161B22", borderRadius: "12px", padding: "22px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
-  cardTitleRow:{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "10px", borderBottom: "1px solid #21262D" },
-  cardTitle:   { fontSize: "15px", fontWeight: "700", color: "#E6EDF3", margin: 0 },
+  card:        { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "22px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
+  cardTitleRow:{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "10px", borderBottom: "1px solid #EEF2F7" },
+  cardTitle:   { fontSize: "15px", fontWeight: "700", color: "#1A1348", margin: 0 },
   filterRow:   { display: "flex", gap: "16px", flexWrap: "wrap" },
-  label:       { display: "block", fontSize: "12px", color: "#8B949E", marginBottom: "6px", fontWeight: "600" },
-  select:      { width: "100%", padding: "9px 12px", backgroundColor: "#0D1117", border: "1px solid #30363D", borderRadius: "8px", color: "#E6EDF3", fontSize: "14px", fontFamily: "inherit" },
+  label:       { display: "block", fontSize: "12px", color: "#6B7280", marginBottom: "6px", fontWeight: "600" },
+  select:      { width: "100%", padding: "9px 12px", backgroundColor: "#F5F7FA", border: "1px solid #E5E7EB", borderRadius: "8px", color: "#1A1348", fontSize: "14px", fontFamily: "inherit" },
   statsRow:    { display: "flex", flexWrap: "wrap", gap: "12px" },
   table:       { width: "100%", borderCollapse: "collapse", minWidth: "800px" },
-  th:          { padding: "10px 12px", textAlign: "left", fontSize: "11px", fontWeight: "700", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px", borderBottom: "1px solid #21262D" },
-  tr:          { borderBottom: "1px solid #21262D" },
+  th:          { padding: "10px 12px", textAlign: "left", fontSize: "11px", fontWeight: "700", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px", borderBottom: "1px solid #EEF2F7" },
+  tr:          { borderBottom: "1px solid #EEF2F7" },
   td:          { padding: "11px 12px", fontSize: "13px", color: "#C9D1D9" },
-  numBillet:   { fontFamily: "monospace", fontSize: "12px", color: "#E6EDF3", backgroundColor: "#21262D", padding: "2px 8px", borderRadius: "4px" },
-  seatBadge:   { backgroundColor: "#21262D", color: "#E6EDF3", padding: "2px 8px", borderRadius: "6px", fontSize: "12px", fontWeight: "700", fontFamily: "monospace" },
-  muted:       { color: "#6E7681", fontSize: "13px", margin: 0 },
-  btnSell:     { padding: "6px 14px", fontSize: "12px", fontWeight: "600", color: "#56D364", backgroundColor: "transparent", border: "1.5px solid #56D364", borderRadius: "6px", cursor: "pointer", fontFamily: "inherit" },
+  numBillet:   { fontFamily: "monospace", fontSize: "12px", color: "#1A1348", backgroundColor: "#EEF2F7", padding: "2px 8px", borderRadius: "4px" },
+  seatBadge:   { backgroundColor: "#EEF2F7", color: "#1A1348", padding: "2px 8px", borderRadius: "6px", fontSize: "12px", fontWeight: "700", fontFamily: "monospace" },
+  muted:       { color: "#6B7280", fontSize: "13px", margin: 0 },
+  btnSell:     { padding: "6px 14px", fontSize: "12px", fontWeight: "600", color: "#26C2A1", backgroundColor: "transparent", border: "1.5px solid #26C2A1", borderRadius: "6px", cursor: "pointer", fontFamily: "inherit" },
   btnDetail:   { padding: "3px 10px", fontSize: "11px", fontWeight: "600", color: "#58A6FF", backgroundColor: "transparent", border: "1px solid #58A6FF33", borderRadius: "5px", cursor: "pointer", fontFamily: "inherit" },
 };

@@ -1,14 +1,15 @@
-import Header from "../../../components/Header";
-import SubHeader from "../../../components/SubHeader";
+import { PageHeader } from "../../../shared/components/dashboard";
 import ModificationEmploye from "../../../components/modificationEmploye";
 
 function ModificationChefPage() {
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" }}>
-      <Header />
-      <SubHeader title="Modification Chef de compagnie" />
+    <>
+      <PageHeader
+        title="Modification chef de compagnie"
+        subtitle="Mettez à jour les informations d'un chef existant."
+      />
       <ModificationEmploye role="chef_compagnie" titre="Modifier un chef de compagnie" />
-    </div>
+    </>
   );
 }
 

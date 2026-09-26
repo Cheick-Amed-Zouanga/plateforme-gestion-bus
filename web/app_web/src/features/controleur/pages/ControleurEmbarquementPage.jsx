@@ -60,26 +60,26 @@ export default function ControleurEmbarquementPage() {
         <div style={st.progressCard}>
           <div style={st.progressTop}>
             <div>
-              <div style={{ fontSize: "11px", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px" }}>Progression</div>
-              <div style={{ fontSize: "22px", fontWeight: "800", color: "#E6EDF3", marginTop: "2px" }}>
+              <div style={{ fontSize: "11px", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px" }}>Progression</div>
+              <div style={{ fontSize: "22px", fontWeight: "800", color: "#1A1348", marginTop: "2px" }}>
                 {embarques} / {total} passagers
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "32px", fontWeight: "800", color: pct >= 80 ? "#56D364" : pct >= 40 ? "#F0883E" : "#58A6FF" }}>{pct}%</div>
-              <div style={{ fontSize: "11px", color: "#6E7681" }}>embarqués</div>
+              <div style={{ fontSize: "32px", fontWeight: "800", color: pct >= 80 ? "#26C2A1" : pct >= 40 ? "#F0883E" : "#58A6FF" }}>{pct}%</div>
+              <div style={{ fontSize: "11px", color: "#6B7280" }}>embarqués</div>
             </div>
           </div>
-          <div style={{ height: "8px", backgroundColor: "#21262D", borderRadius: "4px", overflow: "hidden", marginTop: "12px" }}>
-            <div style={{ width: `${pct}%`, height: "100%", backgroundColor: pct >= 80 ? "#56D364" : pct >= 40 ? "#F0883E" : "#58A6FF", transition: "width 0.5s", borderRadius: "4px" }} />
+          <div style={{ height: "8px", backgroundColor: "#EEF2F7", borderRadius: "4px", overflow: "hidden", marginTop: "12px" }}>
+            <div style={{ width: `${pct}%`, height: "100%", backgroundColor: pct >= 80 ? "#26C2A1" : pct >= 40 ? "#F0883E" : "#58A6FF", transition: "width 0.5s", borderRadius: "4px" }} />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "12px" }}>
-            <span style={{ color: "#56D364", fontWeight: "700" }}>{embarques} embarqués</span>
+            <span style={{ color: "#26C2A1", fontWeight: "700" }}>{embarques} embarqués</span>
             <span style={{ color: "#F0883E", fontWeight: "700" }}>{enAttente} en attente</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
             {lastRefresh && (
-              <span style={{ fontSize: "11px", color: "#6E7681" }}>
+              <span style={{ fontSize: "11px", color: "#6B7280" }}>
                 Mis à jour {lastRefresh.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
               </span>
             )}
@@ -141,22 +141,22 @@ export default function ControleurEmbarquementPage() {
                         <span style={st.seatBadge}>{p.siege_numero ?? "—"}</span>
                       </td>
                       <td style={st.td}>
-                        <div style={{ fontWeight: "700", color: "#E6EDF3", fontSize: "14px" }}>{p.passager}</div>
+                        <div style={{ fontWeight: "700", color: "#1A1348", fontSize: "14px" }}>{p.passager}</div>
                         {p.passager_telephone && (
-                          <div style={{ fontSize: "11px", color: "#6E7681" }}>{p.passager_telephone}</div>
+                          <div style={{ fontSize: "11px", color: "#6B7280" }}>{p.passager_telephone}</div>
                         )}
                       </td>
                       <td style={st.td}>
                         <div style={{ fontSize: "12px", color: "#79C0FF" }}>
                           {p.arret_depart_ville} → {p.arret_arrivee_ville}
                         </div>
-                        <div style={{ fontSize: "11px", color: "#6E7681", fontFamily: "monospace" }}>{p.numero_billet}</div>
+                        <div style={{ fontSize: "11px", color: "#6B7280", fontFamily: "monospace" }}>{p.numero_billet}</div>
                       </td>
                       <td style={st.td}>
                         <span style={{
                           fontSize: "11px", padding: "2px 7px", borderRadius: "4px",
-                          backgroundColor: p.source === "APP" ? "#1B2A3B" : "#21262D",
-                          color: p.source === "APP" ? "#79C0FF" : "#8B949E",
+                          backgroundColor: p.source === "APP" ? "#1B2A3B" : "#EEF2F7",
+                          color: p.source === "APP" ? "#79C0FF" : "#6B7280",
                         }}>
                           {p.source === "APP" ? "En ligne" : "Guichet"}
                         </span>
@@ -165,13 +165,13 @@ export default function ControleurEmbarquementPage() {
                         <span style={{
                           padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "700",
                           backgroundColor: p.embarque ? "#1B3A2D" : "#2D1A0A",
-                          color: p.embarque ? "#56D364" : "#F0883E",
+                          color: p.embarque ? "#26C2A1" : "#F0883E",
                         }}>
                           {p.embarque ? "Embarqué" : "En attente"}
                         </span>
                       </td>
                       <td style={st.td}>
-                        <span style={{ fontSize: "11px", color: "#6E7681" }}>
+                        <span style={{ fontSize: "11px", color: "#6B7280" }}>
                           {p.scanne_le
                             ? new Date(p.scanne_le).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
                             : "—"}
@@ -196,22 +196,22 @@ export default function ControleurEmbarquementPage() {
 }
 
 const st = {
-  page:        { minHeight: "100vh", backgroundColor: "#0D1117", fontFamily: "'Segoe UI', Arial, sans-serif" },
+  page:        { minHeight: "100vh", backgroundColor: "#F5F7FA", fontFamily: "'Poppins', 'Segoe UI', sans-serif" },
   main:        { maxWidth: "1000px", margin: "0 auto", padding: "28px 20px 48px", display: "flex", flexDirection: "column", gap: "16px" },
-  progressCard:{ backgroundColor: "#161B22", borderRadius: "12px", padding: "22px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
+  progressCard:{ backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "22px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
   progressTop: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },
-  btnRefresh:  { padding: "6px 14px", backgroundColor: "transparent", border: "1.5px solid #30363D", borderRadius: "6px", color: "#8B949E", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
+  btnRefresh:  { padding: "6px 14px", backgroundColor: "transparent", border: "1.5px solid #E5E7EB", borderRadius: "6px", color: "#6B7280", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" },
   controls:    { display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" },
   tabs:        { display: "flex", gap: "4px", flexWrap: "wrap" },
-  tab:         { padding: "7px 14px", fontSize: "12px", fontWeight: "600", color: "#8B949E", backgroundColor: "#161B22", border: "1.5px solid #30363D", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit" },
-  tabActif:    { color: "#E6EDF3", borderColor: "#58A6FF", backgroundColor: "#1B2A3B" },
-  search:      { flex: "1 1 180px", padding: "8px 12px", backgroundColor: "#161B22", border: "1.5px solid #30363D", borderRadius: "8px", color: "#E6EDF3", fontSize: "13px", fontFamily: "inherit" },
-  card:        { backgroundColor: "#161B22", borderRadius: "12px", padding: "4px 0", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
+  tab:         { padding: "7px 14px", fontSize: "12px", fontWeight: "600", color: "#6B7280", backgroundColor: "#FFFFFF", border: "1.5px solid #E5E7EB", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit" },
+  tabActif:    { color: "#1A1348", borderColor: "#58A6FF", backgroundColor: "#1B2A3B" },
+  search:      { flex: "1 1 180px", padding: "8px 12px", backgroundColor: "#FFFFFF", border: "1.5px solid #E5E7EB", borderRadius: "8px", color: "#1A1348", fontSize: "13px", fontFamily: "inherit" },
+  card:        { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "4px 0", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" },
   table:       { width: "100%", borderCollapse: "collapse", minWidth: "660px" },
-  th:          { padding: "10px 14px", textAlign: "left", fontSize: "11px", fontWeight: "700", color: "#6E7681", textTransform: "uppercase", letterSpacing: "0.8px", borderBottom: "1px solid #21262D" },
-  tr:          { borderBottom: "1px solid #21262D" },
+  th:          { padding: "10px 14px", textAlign: "left", fontSize: "11px", fontWeight: "700", color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.8px", borderBottom: "1px solid #EEF2F7" },
+  tr:          { borderBottom: "1px solid #EEF2F7" },
   td:          { padding: "12px 14px", fontSize: "13px", color: "#C9D1D9", verticalAlign: "middle" },
-  seatBadge:   { backgroundColor: "#21262D", color: "#E6EDF3", padding: "3px 9px", borderRadius: "6px", fontSize: "13px", fontWeight: "800", fontFamily: "monospace" },
-  muted:       { color: "#6E7681", fontSize: "13px", margin: "16px", padding: "16px" },
-  btnScan:     { alignSelf: "center", padding: "12px 32px", backgroundColor: "#009A44", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" },
+  seatBadge:   { backgroundColor: "#EEF2F7", color: "#1A1348", padding: "3px 9px", borderRadius: "6px", fontSize: "13px", fontWeight: "800", fontFamily: "monospace" },
+  muted:       { color: "#6B7280", fontSize: "13px", margin: "16px", padding: "16px" },
+  btnScan:     { alignSelf: "center", padding: "12px 32px", backgroundColor: "#26C2A1", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" },
 };

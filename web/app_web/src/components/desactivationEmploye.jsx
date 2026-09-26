@@ -21,7 +21,7 @@ function DesactivationEmploye({ titre }) {
   }
 
   return (
-    <main style={s.main}>
+    <div className="dash-form-wrap">
       <div style={s.card}>
         <form onSubmit={gererSoumission}>
           <div style={s.group}>
@@ -36,7 +36,7 @@ function DesactivationEmploye({ titre }) {
             />
           </div>
           <div style={s.btnRow}>
-            <button type="submit" style={{ ...s.btnSubmit, backgroundColor: "#C41E3A" }}>
+            <button type="submit" style={{ ...s.btnSubmit, backgroundColor: "#304FFE" }}>
               Désactiver le compte
             </button>
             <button type="button" style={s.btnBack} onClick={() => navigate("/admin")}>
@@ -45,7 +45,7 @@ function DesactivationEmploye({ titre }) {
           </div>
         </form>
       </div>
-    </main>
+    </div>
   );
 }
 

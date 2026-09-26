@@ -2,7 +2,7 @@ import random
 
 from django.conf import settings
 from django.contrib.auth import logout
-from django.contrib.auth.models import User
+from apps.iam.models import CustomUser
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.middleware.csrf import get_token
@@ -29,6 +29,7 @@ from .serializers import (
     ProfilConnecteSerializer,
     ReinitialisationCompteSerializer,
     VerificationCodeSerializer,
+    resolve_company_for_employe,
 )
 
 
@@ -98,10 +99,20 @@ class ConnexionView(APIView):
             role = utilisateur.profil_employe.role
 
         response = Response(
-            {'message': 'Connexion réussie.', 'username': utilisateur.username, 'role': role},
+            {
+                'message': 'Connexion réussie.',
+                'username': utilisateur.username,
+                'role': role,
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'is_client': hasattr(utilisateur, 'profil_client'),
+            },
             status=status.HTTP_200_OK,
         )
         return _set_jwt_cookies(response, refresh)
+
+# Note: le login multi-tenant (email+password, JWT en localStorage) vit désormais
+# dans apps.iam.views.CustomTokenObtainPairView, monté sur /api/iam/auth/login/.
 
 
 class DeconnexionView(APIView):
@@ -109,7 +120,10 @@ class DeconnexionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        refresh_token = request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE)
+        refresh_token = (
+            request.data.get('refresh')
+            or request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE)
+        )
 
         if refresh_token:
             try:
@@ -125,12 +139,15 @@ class DeconnexionView(APIView):
 
 
 class TokenRefreshCookieView(APIView):
-    """Renouvelle l'access token à partir du refresh token stocké en cookie."""
+    """Renouvelle l'access token (cookie web ou body refresh mobile)."""
     permission_classes = [AllowAny]
     authentication_classes = []
 
     def post(self, request):
-        refresh_token = request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE)
+        refresh_token = (
+            request.data.get('refresh')
+            or request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE)
+        )
         if not refresh_token:
             return Response(
                 {'detail': 'Refresh token manquant.'},
@@ -138,7 +155,24 @@ class TokenRefreshCookieView(APIView):
             )
         try:
             refresh = RefreshToken(refresh_token)
-            response = Response({'message': 'Token renouvelé.'})
+            data = {
+                'message': 'Token renouvelé.',
+                'access': str(refresh.access_token),
+            }
+
+            # Rotation alignée sur SIMPLE_JWT (évite double-refresh → logout)
+            if settings.SIMPLE_JWT.get('ROTATE_REFRESH_TOKENS', False):
+                if settings.SIMPLE_JWT.get('BLACKLIST_AFTER_ROTATION', False):
+                    try:
+                        refresh.blacklist()
+                    except AttributeError:
+                        pass
+                refresh.set_jti()
+                refresh.set_exp()
+                refresh.set_iat()
+
+            data['refresh'] = str(refresh)
+            response = Response(data)
             return _set_jwt_cookies(response, refresh)
         except TokenError as e:
             return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
@@ -247,21 +281,23 @@ class CreationEmployeCompagnieView(BaseAPIView):
 # ---------------------------------------------------------------------------
 
 class ListeEmployesCompagnieView(BaseAPIView):
-    """Retourne tous les employés actifs de la compagnie du chef connecté."""
+    """Retourne les employés de la compagnie (hors chef)."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        try:
-            profil = request.user.profil_employe
-        except ProfilEmploye.DoesNotExist:
-            return Response({'message': 'Accès refusé.'}, status=status.HTTP_403_FORBIDDEN)
+        company = resolve_company_for_employe(request.user, 'employe.read')
+        if company is None:
+            return Response(
+                {'message': 'Permission employe.read requise, ou rôle chef de compagnie.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
-        if profil.role != ProfilEmploye.Role.CHEF_COMPAGNIE or not profil.compagnie:
-            return Response({'message': 'Accès réservé au chef de compagnie.'}, status=status.HTTP_403_FORBIDDEN)
-
-        employes = ProfilEmploye.objects.filter(
-            compagnie=profil.compagnie, actif=True
-        ).exclude(id=profil.id).select_related('utilisateur').order_by('role')
+        employes = (
+            ProfilEmploye.objects.filter(company=company)
+            .exclude(role=ProfilEmploye.Role.CHEF_COMPAGNIE)
+            .select_related('utilisateur')
+            .order_by('-actif', 'role', 'utilisateur__last_name')
+        )
 
         data = [
             {
@@ -271,6 +307,7 @@ class ListeEmployesCompagnieView(BaseAPIView):
                 'last_name':  e.utilisateur.last_name,
                 'email':      e.utilisateur.email,
                 'role':       e.role,
+                'role_display': e.get_role_display(),
                 'telephone':  e.telephone,
                 'actif':      e.actif,
             }
@@ -394,7 +431,7 @@ class DesactiverMonCompteClientView(BaseAPIView):
 
 
 class DesactiverEmployeCompagnieView(BaseAPIView):
-    """Permet à un chef de compagnie de désactiver un réceptionniste ou contrôleur de sa compagnie."""
+    """Désactive un réceptionniste ou contrôleur de la compagnie."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, employe_id):
@@ -403,17 +440,13 @@ class DesactiverEmployeCompagnieView(BaseAPIView):
         except ProfilEmploye.DoesNotExist:
             return Response({"message": "Employé introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
-        try:
-            profil_chef = request.user.profil_employe
-        except ProfilEmploye.DoesNotExist:
-            return Response({"message": "Accès refusé."}, status=status.HTTP_403_FORBIDDEN)
-
-        if profil_chef.role != ProfilEmploye.Role.CHEF_COMPAGNIE:
+        company = resolve_company_for_employe(request.user, 'employe.delete')
+        if company is None:
             return Response(
-                {"message": "Seul un chef de compagnie peut désactiver cet employé."},
+                {"message": "Permission employe.delete requise, ou rôle chef de compagnie."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if employe_cible.compagnie != profil_chef.compagnie:
+        if employe_cible.company_id != company.id:
             return Response(
                 {"message": "Vous ne pouvez désactiver qu'un employé de votre compagnie."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -558,8 +591,8 @@ class ReinitialiserCompteView(BaseAPIView):
             )
 
         try:
-            utilisateur = User.objects.get(email__iexact=email)
-        except User.DoesNotExist:
+            utilisateur = CustomUser.objects.get(email__iexact=email)
+        except CustomUser.DoesNotExist:
             return Response(
                 {"message": "Aucun compte associé à cet email."},
                 status=status.HTTP_404_NOT_FOUND,

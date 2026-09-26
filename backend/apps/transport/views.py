@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from apps.accounts.models import ProfilEmploye
-from .models import Bus, Siege, Ligne, ArretLigne, Trajet, Tarif
+from .models import Bus, Siege, Ligne, ArretLigne, Trajet, Tarif, HoraireLigne
 from .serializers import (
     BusSerializer, CreationBusSerializer, ModificationBusSerializer,
     LigneListSerializer, LigneDetailSerializer,
@@ -18,8 +18,12 @@ from .serializers import (
     AjoutArretSerializer, ModificationArretSerializer,
     TrajetSerializer, CreationTrajetSerializer, ModificationTrajetSerializer,
     TarifSerializer, CreationTarifSerializer, ModificationTarifSerializer,
+    HoraireLigneSerializer, CreationHoraireSerializer, ModificationHoraireSerializer,
 )
-from .services import coordonnees_ville, calculer_segment, trouver_arrets_potentiels
+from .services import (
+    coordonnees_ville, calculer_segment, trouver_arrets_potentiels,
+    assurer_departs_horaire,
+)
 
 
 #  Helpers 
@@ -28,16 +32,66 @@ def get_chef_compagnie(request):
         profil = request.user.profil_employe
     except ProfilEmploye.DoesNotExist:
         return None, None
-    if profil.role != ProfilEmploye.Role.CHEF_COMPAGNIE or profil.compagnie is None:
+    if profil.role != ProfilEmploye.Role.CHEF_COMPAGNIE or profil.company is None:
         return None, None
-    return profil, profil.compagnie
+    return profil, profil.company
+
+
+def get_company_for_ops(request, permission_name=None):
+    """
+    Résout la compagnie pour les ops transport (bus, ligne, trajet…).
+    Accepte :
+    - IAM : user.company + permission ressource.*
+    - Legacy : ProfilEmploye CHEF_COMPAGNIE
+    """
+    user = request.user
+    company = getattr(user, 'company', None)
+
+    if company is not None:
+        if permission_name is None or user.has_permission(permission_name):
+            return company
+        try:
+            profil = user.profil_employe
+            if profil.role == ProfilEmploye.Role.CHEF_COMPAGNIE:
+                return company
+        except ProfilEmploye.DoesNotExist:
+            pass
+        return None
+
+    _, company = get_chef_compagnie(request)
+    return company
+
+
+# Alias conservé (bus)
+def get_company_for_bus(request, permission_name=None):
+    return get_company_for_ops(request, permission_name)
+
+
+def _ops_acces_refuse(permission_name=None):
+    detail = (
+        f'Permission "{permission_name}" requise, ou rôle chef de compagnie.'
+        if permission_name
+        else 'Accès refusé.'
+    )
+    return Response({'message': detail}, status=status.HTTP_403_FORBIDDEN)
+
+
+def _bus_acces_refuse(permission_name=None):
+    return _ops_acces_refuse(permission_name)
+
+
+def _acces_refuse():
+    return Response(
+        {'message': 'Accès réservé au chef de compagnie.'},
+        status=status.HTTP_403_FORBIDDEN,
+    )
 
 
 def _auto_annuler_trajets_vides(compagnie):
     """Annule les trajets dont l'heure de départ est passée et qui n'ont aucun billet."""
     from apps.reservation_billets.models import Billet
     trajets_depasses = Trajet.objects.filter(
-        compagnie=compagnie,
+        company=compagnie,
         statut__in=[Trajet.Statut.PLANIFIE, Trajet.Statut.EN_COURS],
         depart_prevu__lte=timezone.now(),
     )
@@ -50,17 +104,10 @@ def _auto_annuler_trajets_vides(compagnie):
             t.save()
 
 
-def _acces_refuse():
-    return Response(
-        {'message': 'Accès réservé au chef de compagnie.'},
-        status=status.HTTP_403_FORBIDDEN,
-    )
-
-
 def _generer_code_ligne(compagnie):
-    mots    = compagnie.nom.split()
+    mots    = compagnie.name.split()
     prefixe = ''.join(m[0].upper() for m in mots[:3])
-    n       = Ligne.objects.filter(compagnie=compagnie).count() + 1
+    n       = Ligne.objects.filter(company=compagnie).count() + 1
     code    = f"{prefixe}-{n:03d}"
     while Ligne.objects.filter(code=code).exists():
         n   += 1
@@ -68,12 +115,12 @@ def _generer_code_ligne(compagnie):
     return code
 
 
-def _get_ligne_chef(request, ligne_id):
-    _, compagnie = get_chef_compagnie(request)
+def _get_ligne_chef(request, ligne_id, permission_name='ligne.read'):
+    compagnie = get_company_for_ops(request, permission_name)
     if not compagnie:
-        return None, _acces_refuse()
+        return None, _ops_acces_refuse(permission_name)
     try:
-        ligne = Ligne.objects.prefetch_related('arrets').get(id=ligne_id, compagnie=compagnie)
+        ligne = Ligne.objects.prefetch_related('arrets').get(id=ligne_id, company=compagnie)
         return ligne, None
     except Ligne.DoesNotExist:
         return None, Response({'message': 'Ligne introuvable.'}, status=status.HTTP_404_NOT_FOUND)
@@ -85,24 +132,27 @@ class BusListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        _, compagnie = get_chef_compagnie(request)
+        compagnie = get_company_for_bus(request, 'bus.read')
         if not compagnie:
-            return _acces_refuse()
-        bus = Bus.objects.filter(compagnie=compagnie).order_by('immatriculation')
+            return _bus_acces_refuse('bus.read')
+        bus = Bus.objects.filter(company=compagnie).order_by('immatriculation')
         return Response(BusSerializer(bus, many=True).data)
 
     def post(self, request):
-        _, compagnie = get_chef_compagnie(request)
+        compagnie = get_company_for_bus(request, 'bus.create')
         if not compagnie:
-            return _acces_refuse()
+            return _bus_acces_refuse('bus.create')
         serializer = CreationBusSerializer(data=request.data)
         if serializer.is_valid():
-            bus = Bus.objects.create(compagnie=compagnie, **serializer.validated_data)
+            bus = Bus.objects.create(company=compagnie, **serializer.validated_data)
             Siege.objects.bulk_create(
                 [Siege(bus=bus, numero=str(i)) for i in range(1, bus.capacite + 1)]
             )
             return Response(
-                {'message': f"Bus {bus.immatriculation} créé avec {bus.capacite} sièges.", 'id': bus.id},
+                {
+                    'message': f"Bus {bus.immatriculation} créé avec {bus.capacite} sièges.",
+                    'id': bus.id,
+                },
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -111,35 +161,54 @@ class BusListCreateView(APIView):
 class BusDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def _get_bus(self, request, bus_id):
-        _, compagnie = get_chef_compagnie(request)
+    def _get_bus(self, request, bus_id, permission_name):
+        compagnie = get_company_for_bus(request, permission_name)
         if not compagnie:
-            return None, _acces_refuse()
+            return None, _bus_acces_refuse(permission_name)
         try:
-            return Bus.objects.get(id=bus_id, compagnie=compagnie), None
+            return Bus.objects.get(id=bus_id, company=compagnie), None
         except Bus.DoesNotExist:
             return None, Response({'message': 'Bus introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
     def get(self, request, bus_id):
-        bus, err = self._get_bus(request, bus_id)
+        bus, err = self._get_bus(request, bus_id, 'bus.read')
         if err:
             return err
         return Response(BusSerializer(bus).data)
 
     def patch(self, request, bus_id):
-        bus, err = self._get_bus(request, bus_id)
+        bus, err = self._get_bus(request, bus_id, 'bus.update')
         if err:
             return err
         serializer = ModificationBusSerializer(data=request.data, partial=True, context={'bus': bus})
         if serializer.is_valid():
+            old_capacite = bus.capacite
             for attr, val in serializer.validated_data.items():
                 setattr(bus, attr, val)
             bus.save()
-            return Response({'message': 'Bus modifié.'})
+
+            # Ajuster les sièges si la capacité augmente
+            new_capacite = bus.capacite
+            if new_capacite > old_capacite:
+                existing = set(bus.sieges.values_list('numero', flat=True))
+                to_create = [
+                    Siege(bus=bus, numero=str(i))
+                    for i in range(1, new_capacite + 1)
+                    if str(i) not in existing
+                ]
+                Siege.objects.bulk_create(to_create)
+            elif new_capacite < old_capacite:
+                # Supprime uniquement les sièges en trop (numéros > nouvelle capacité)
+                bus.sieges.filter(numero__in=[str(i) for i in range(new_capacite + 1, old_capacite + 1)]).delete()
+
+            return Response({
+                'message': 'Bus modifié.',
+                'sieges': bus.sieges.count(),
+            })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, bus_id):
-        bus, err = self._get_bus(request, bus_id)
+        bus, err = self._get_bus(request, bus_id, 'bus.delete')
         if err:
             return err
         if Trajet.objects.filter(bus=bus, statut__in=['PLANIFIE', 'EN_COURS']).exists():
@@ -151,7 +220,6 @@ class BusDetailView(APIView):
         bus.save()
         return Response({'message': 'Bus désactivé.'})
 
-
 #Lignes 
 
 class ArretsPotentielsView(APIView):
@@ -162,9 +230,9 @@ class ArretsPotentielsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        _, compagnie = get_chef_compagnie(request)
+        compagnie = get_company_for_ops(request, 'ligne.create')
         if not compagnie:
-            return _acces_refuse()
+            return _ops_acces_refuse('ligne.create')
 
         ville_dep = request.data.get('ville_depart', '').strip()
         ville_arr = request.data.get('ville_arrivee', '').strip()
@@ -210,10 +278,10 @@ class LigneListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        _, compagnie = get_chef_compagnie(request)
+        compagnie = get_company_for_ops(request, 'ligne.read')
         if not compagnie:
-            return _acces_refuse()
-        lignes = Ligne.objects.filter(compagnie=compagnie).prefetch_related('arrets').order_by('-date_creation')
+            return _ops_acces_refuse('ligne.read')
+        lignes = Ligne.objects.filter(company=compagnie).prefetch_related('arrets').order_by('-date_creation')
         return Response(LigneListSerializer(lignes, many=True).data)
 
     def post(self, request):
@@ -221,9 +289,9 @@ class LigneListCreateView(APIView):
         Crée une ligne complète en une seule requête :
         ville_depart + ville_arrivee + arrêts intermédiaires optionnels.
         """
-        _, compagnie = get_chef_compagnie(request)
+        compagnie = get_company_for_ops(request, 'ligne.create')
         if not compagnie:
-            return _acces_refuse()
+            return _ops_acces_refuse('ligne.create')
 
         serializer = CreationLigneCompleteSerializer(data=request.data)
         if not serializer.is_valid():
@@ -261,7 +329,7 @@ class LigneListCreateView(APIView):
         # Création de la ligne
         code  = _generer_code_ligne(compagnie)
         ligne = Ligne.objects.create(
-            compagnie=compagnie,
+            company=compagnie,
             code=code,
             nom=data['nom'],
             description=data.get('description', ''),
@@ -322,13 +390,13 @@ class LigneDetailModifierView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, ligne_id):
-        ligne, err = _get_ligne_chef(request, ligne_id)
+        ligne, err = _get_ligne_chef(request, ligne_id, 'ligne.read')
         if err:
             return err
         return Response(LigneDetailSerializer(ligne).data)
 
     def patch(self, request, ligne_id):
-        ligne, err = _get_ligne_chef(request, ligne_id)
+        ligne, err = _get_ligne_chef(request, ligne_id, 'ligne.update')
         if err:
             return err
         serializer = ModificationLigneSerializer(data=request.data, partial=True)
@@ -340,7 +408,7 @@ class LigneDetailModifierView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, ligne_id):
-        ligne, err = _get_ligne_chef(request, ligne_id)
+        ligne, err = _get_ligne_chef(request, ligne_id, 'ligne.delete')
         if err:
             return err
         if Trajet.objects.filter(ligne=ligne, statut__in=['PLANIFIE', 'EN_COURS']).exists():
@@ -362,7 +430,7 @@ class LigneDesactiverView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, ligne_id):
-        ligne, err = _get_ligne_chef(request, ligne_id)
+        ligne, err = _get_ligne_chef(request, ligne_id, 'ligne.update')
         if err:
             return err
         ligne.active = False
@@ -480,9 +548,9 @@ class CalculerSegmentView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        _, compagnie = get_chef_compagnie(request)
+        compagnie = get_company_for_ops(request, 'ligne.create')
         if not compagnie:
-            return _acces_refuse()
+            return _ops_acces_refuse('ligne.create')
 
         ville_dep = request.data.get('ville_depart', '').strip()
         ville_arr = request.data.get('ville_arrivee', '').strip()
@@ -510,36 +578,41 @@ class TrajetListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        _, compagnie = get_chef_compagnie(request)
+        compagnie = get_company_for_ops(request, 'trajet.read')
         if not compagnie:
-            return _acces_refuse()
+            return _ops_acces_refuse('trajet.read')
+        # Matérialise les prochains départs des horaires (heure Burkina)
+        for h in HoraireLigne.objects.filter(company=compagnie, actif=True).select_related(
+            'ligne', 'bus_defaut'
+        ):
+            assurer_departs_horaire(h, date=None, nb_departs=7)
         _auto_annuler_trajets_vides(compagnie)
         trajets = (
             Trajet.objects
-            .filter(compagnie=compagnie)
+            .filter(company=compagnie)
             .select_related('ligne', 'bus', 'controleur__utilisateur')
             .order_by('-depart_prevu')
         )
         return Response(TrajetSerializer(trajets, many=True).data)
 
     def post(self, request):
-        _, compagnie = get_chef_compagnie(request)
+        compagnie = get_company_for_ops(request, 'trajet.create')
         if not compagnie:
-            return _acces_refuse()
+            return _ops_acces_refuse('trajet.create')
         serializer = CreationTrajetSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data
-            if data['bus'].compagnie != compagnie:
+            if data['bus'].company != compagnie:
                 return Response(
                     {'message': "Ce bus n'appartient pas à votre compagnie."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             controleur = data.get('controleur')
-            if controleur and controleur.compagnie != compagnie:
+            if controleur and controleur.company != compagnie:
                 return Response({'message': "Ce contrôleur n'appartient pas à votre compagnie."},
                                 status=status.HTTP_400_BAD_REQUEST)
             trajet = Trajet.objects.create(
-                compagnie=compagnie,
+                company=compagnie,
                 ligne=data['ligne'],
                 bus=data['bus'],
                 controleur=controleur,
@@ -553,33 +626,33 @@ class TrajetListCreateView(APIView):
 class TrajetDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def _get_trajet(self, request, trajet_id):
-        _, compagnie = get_chef_compagnie(request)
+    def _get_trajet(self, request, trajet_id, permission_name='trajet.read'):
+        compagnie = get_company_for_ops(request, permission_name)
         if not compagnie:
-            return None, _acces_refuse()
+            return None, _ops_acces_refuse(permission_name)
         try:
             trajet = Trajet.objects.select_related('ligne', 'bus').get(
-                id=trajet_id, compagnie=compagnie
+                id=trajet_id, company=compagnie
             )
             return trajet, None
         except Trajet.DoesNotExist:
             return None, Response({'message': 'Trajet introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
     def get(self, request, trajet_id):
-        trajet, err = self._get_trajet(request, trajet_id)
+        trajet, err = self._get_trajet(request, trajet_id, 'trajet.read')
         if err:
             return err
         return Response(TrajetSerializer(trajet).data)
 
     def patch(self, request, trajet_id):
-        trajet, err = self._get_trajet(request, trajet_id)
+        trajet, err = self._get_trajet(request, trajet_id, 'trajet.update')
         if err:
             return err
         serializer = ModificationTrajetSerializer(data=request.data, partial=True)
         if serializer.is_valid():
             data = serializer.validated_data
             # Vérifie que le nouveau bus appartient à la compagnie
-            if 'bus' in data and data['bus'].compagnie != trajet.compagnie:
+            if 'bus' in data and data['bus'].company != trajet.company:
                 return Response(
                     {'message': "Ce bus n'appartient pas à votre compagnie."},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -591,7 +664,7 @@ class TrajetDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, trajet_id):
-        trajet, err = self._get_trajet(request, trajet_id)
+        trajet, err = self._get_trajet(request, trajet_id, 'trajet.delete')
         if err:
             return err
         if trajet.statut == 'EN_COURS':
@@ -607,6 +680,160 @@ class TrajetDetailView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
         return Response({'message': 'Trajet supprimé.'})
+
+
+# ─── Horaires récurrents ──────────────────────────────────────────────────────
+
+class HoraireListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        compagnie = get_company_for_ops(request, 'trajet.read')
+        if not compagnie:
+            return _ops_acces_refuse('trajet.read')
+        horaires = (
+            HoraireLigne.objects
+            .filter(company=compagnie)
+            .select_related('ligne', 'bus_defaut')
+            .order_by('ligne__code', 'heure_depart')
+        )
+        return Response(HoraireLigneSerializer(horaires, many=True).data)
+
+    def post(self, request):
+        compagnie = get_company_for_ops(request, 'trajet.create')
+        if not compagnie:
+            return _ops_acces_refuse('trajet.create')
+        serializer = CreationHoraireSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        ligne = data['ligne']
+        if ligne.company_id != compagnie.id:
+            return Response(
+                {'message': "Cette ligne n'appartient pas à votre compagnie."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        bus_defaut = data.get('bus_defaut')
+        if bus_defaut and bus_defaut.company_id != compagnie.id:
+            return Response(
+                {'message': "Ce bus n'appartient pas à votre compagnie."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        horaire = HoraireLigne(
+            company=compagnie,
+            ligne=ligne,
+            heure_depart=data['heure_depart'],
+            type_bus=data['type_bus'],
+            bus_defaut=bus_defaut,
+            duree_estimee_min=data.get('duree_estimee_min'),
+            actif=data.get('actif', True),
+            date_debut=data.get('date_debut'),
+            date_fin=data.get('date_fin'),
+        )
+        horaire.set_jours_list(data['jours'])
+        horaire.save()
+
+        return Response(
+            {
+                'message': 'Horaire créé. Les départs seront proposés selon les jours cochés (heure locale Burkina).',
+                'id': horaire.id,
+                'horaire': HoraireLigneSerializer(horaire).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class HoraireDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def _get(self, request, horaire_id, permission_name='trajet.read'):
+        compagnie = get_company_for_ops(request, permission_name)
+        if not compagnie:
+            return None, _ops_acces_refuse(permission_name)
+        try:
+            horaire = HoraireLigne.objects.select_related('ligne', 'bus_defaut').get(
+                id=horaire_id, company=compagnie,
+            )
+            return horaire, None
+        except HoraireLigne.DoesNotExist:
+            return None, Response({'message': 'Horaire introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+    def get(self, request, horaire_id):
+        horaire, err = self._get(request, horaire_id, 'trajet.read')
+        if err:
+            return err
+        return Response(HoraireLigneSerializer(horaire).data)
+
+    def patch(self, request, horaire_id):
+        horaire, err = self._get(request, horaire_id, 'trajet.update')
+        if err:
+            return err
+        serializer = ModificationHoraireSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        bus_defaut = data.get('bus_defaut')
+        if 'bus_defaut' in data and bus_defaut is not None and bus_defaut.company_id != horaire.company_id:
+            return Response(
+                {'message': "Ce bus n'appartient pas à votre compagnie."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if 'ligne' in data:
+            ligne = data['ligne']
+            if ligne.company_id != horaire.company_id:
+                return Response(
+                    {'message': "Cette ligne n'appartient pas à votre compagnie."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if 'jours' in data:
+            horaire.set_jours_list(data.pop('jours'))
+        for attr, val in data.items():
+            setattr(horaire, attr, val)
+        horaire.save()
+
+        return Response({
+            'message': 'Horaire modifié.',
+            'horaire': HoraireLigneSerializer(horaire).data,
+        })
+
+    def delete(self, request, horaire_id):
+        horaire, err = self._get(request, horaire_id, 'trajet.delete')
+        if err:
+            return err
+        # Ne supprime pas les trajets déjà générés (historique / billets)
+        horaire.delete()
+        return Response({'message': 'Horaire supprimé.'})
+
+
+class HoraireGenererView(APIView):
+    """Matérialise les prochains départs d'un horaire (selon jours cochés)."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, horaire_id):
+        compagnie = get_company_for_ops(request, 'trajet.create')
+        if not compagnie:
+            return _ops_acces_refuse('trajet.create')
+        try:
+            horaire = HoraireLigne.objects.select_related('ligne', 'bus_defaut').get(
+                id=horaire_id, company=compagnie,
+            )
+        except HoraireLigne.DoesNotExist:
+            return Response({'message': 'Horaire introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+        gen = assurer_departs_horaire(horaire, date=None, nb_departs=7)
+        if gen['erreur'] and gen['crees'] == 0:
+            return Response(
+                {'message': gen['erreur'], 'generation': gen},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response({
+            'message': f"{gen['crees']} prochain(s) départ(s) prêt(s).",
+            'generation': gen,
+        })
 
 
 # ─── Historique trajets ───────────────────────────────────────────────────────
@@ -628,7 +855,7 @@ class HistoriqueTrajetsView(APIView):
 
         trajets = (
             Trajet.objects
-            .filter(compagnie=compagnie, statut__in=['TERMINE', 'ANNULE'], depart_prevu__gte=depuis)
+            .filter(company=compagnie, statut__in=['TERMINE', 'ANNULE'], depart_prevu__gte=depuis)
             .select_related('ligne', 'bus', 'controleur__utilisateur')
             .order_by('-depart_prevu')
         )
@@ -679,19 +906,19 @@ class TableauDeBordView(APIView):
 
         aujourd_hui = timezone.now().date()
 
-        bus_actifs   = Bus.objects.filter(compagnie=compagnie, actif=True).count()
-        bus_inactifs = Bus.objects.filter(compagnie=compagnie, actif=False).count()
+        bus_actifs   = Bus.objects.filter(company=compagnie, actif=True).count()
+        bus_inactifs = Bus.objects.filter(company=compagnie, actif=False).count()
 
         total_employes = (
             ProfilEmploye.objects
-            .filter(compagnie=compagnie, actif=True)
+            .filter(company=compagnie, actif=True)
             .exclude(role=ProfilEmploye.Role.CHEF_COMPAGNIE)
             .count()
         )
 
         trajets_du_jour_qs = (
             Trajet.objects
-            .filter(compagnie=compagnie, depart_prevu__date=aujourd_hui)
+            .filter(company=compagnie, depart_prevu__date=aujourd_hui)
             .select_related('ligne', 'bus')
             .order_by('depart_prevu')
         )
@@ -699,7 +926,7 @@ class TableauDeBordView(APIView):
         statuts_counts = {
             s['statut']: s['total']
             for s in Trajet.objects
-                .filter(compagnie=compagnie)
+                .filter(company=compagnie)
                 .values('statut')
                 .annotate(total=Count('id'))
         }
@@ -726,7 +953,7 @@ class TableauDeBordView(APIView):
                 }
                 for tarif in (
                     Tarif.objects
-                    .filter(compagnie=compagnie, ligne=t.ligne, type_bus=t.bus.type_bus)
+                    .filter(company=compagnie, ligne=t.ligne, type_bus=t.bus.type_bus)
                     .select_related('arret_depart', 'arret_arrivee')
                     .order_by('arret_depart__ordre')
                 )
@@ -764,7 +991,7 @@ class TableauDeBordView(APIView):
             }
             for e in (
                 ProfilEmploye.objects
-                .filter(compagnie=compagnie, actif=True)
+                .filter(company=compagnie, actif=True)
                 .exclude(role=ProfilEmploye.Role.CHEF_COMPAGNIE)
                 .select_related('utilisateur')
                 .order_by('role', 'utilisateur__last_name')
@@ -793,21 +1020,23 @@ class TarifListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        _, compagnie = get_chef_compagnie(request)
+        compagnie = get_company_for_ops(request, 'tarif.read')
         if not compagnie:
-            return _acces_refuse()
-        tarifs = Tarif.objects.filter(compagnie=compagnie).select_related('ligne', 'arret_depart', 'arret_arrivee')
+            return _ops_acces_refuse('tarif.read')
+        tarifs = Tarif.objects.filter(company=compagnie).select_related(
+            'ligne', 'arret_depart', 'arret_arrivee'
+        )
         return Response(TarifSerializer(tarifs, many=True).data)
 
     def post(self, request):
-        _, compagnie = get_chef_compagnie(request)
+        compagnie = get_company_for_ops(request, 'tarif.create')
         if not compagnie:
-            return _acces_refuse()
+            return _ops_acces_refuse('tarif.create')
         serializer = CreationTarifSerializer(data=request.data, context={'compagnie': compagnie})
         if serializer.is_valid():
             data  = serializer.validated_data
             tarif = Tarif.objects.create(
-                compagnie=compagnie,
+                company=compagnie,
                 ligne=data['ligne'],
                 arret_depart=data['arret_depart'],
                 arret_arrivee=data['arret_arrivee'],
@@ -822,17 +1051,17 @@ class TarifListCreateView(APIView):
 class TarifDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def _get_tarif(self, request, tarif_id):
-        _, compagnie = get_chef_compagnie(request)
+    def _get_tarif(self, request, tarif_id, permission_name='tarif.read'):
+        compagnie = get_company_for_ops(request, permission_name)
         if not compagnie:
-            return None, _acces_refuse()
+            return None, _ops_acces_refuse(permission_name)
         try:
-            return Tarif.objects.get(id=tarif_id, compagnie=compagnie), None
+            return Tarif.objects.get(id=tarif_id, company=compagnie), None
         except Tarif.DoesNotExist:
             return None, Response({'message': 'Tarif introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
     def patch(self, request, tarif_id):
-        tarif, err = self._get_tarif(request, tarif_id)
+        tarif, err = self._get_tarif(request, tarif_id, 'tarif.update')
         if err:
             return err
         serializer = ModificationTarifSerializer(data=request.data, partial=True)
@@ -844,7 +1073,7 @@ class TarifDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, tarif_id):
-        tarif, err = self._get_tarif(request, tarif_id)
+        tarif, err = self._get_tarif(request, tarif_id, 'tarif.delete')
         if err:
             return err
         tarif.delete()
